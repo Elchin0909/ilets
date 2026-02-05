@@ -1,0 +1,57 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: ielts-redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+
+  db:
+    image: postgres:16
+    container_name: ielts-db
+    environment:
+      POSTGRES_DB: ielts_center
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - ./db-init:/docker-entrypoint-initdb.d
+      - ielts_db_data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+
+    container_name: ielts-backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/ielts_center
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SENDGRID_API_KEY: ${SENDGRID_API_KEY}
+      SENDGRID_FROM_EMAIL: ${SENDGRID_FROM_EMAIL}
+      ADMIN_OTP_EMAIL: ${ADMIN_OTP_EMAIL}
+      SERVER_PORT: 8080
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+    ports:
+      - "${BACKEND_PORT:-8082}:8080"
+    depends_on:
+      - db
+      - redis
+
+  frontend:
+    build:
+      context: ../ielts-frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:${BACKEND_PORT:-8082}
+    container_name: ielts-frontend
+    ports:
+      - "${FRONTEND_PORT:-5173}:80"
+    depends_on:
+      - backend
+
+volumes:
+  ielts_db_data:

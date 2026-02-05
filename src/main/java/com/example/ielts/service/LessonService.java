@@ -1,0 +1,72 @@
+package com.example.ielts.service;
+
+import com.example.ielts.dto.LessonCreateRequest;
+import com.example.ielts.entity.Lesson;
+import com.example.ielts.repo.GroupRepository;
+import com.example.ielts.repo.LessonRepository;
+import com.example.ielts.security.UserPrincipal;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.List;
+import java.util.UUID;
+
+@Service
+@RequiredArgsConstructor
+public class LessonService {
+
+    private final LessonRepository lessonRepo;
+    private final GroupRepository groupRepo;
+
+    public Lesson create(LessonCreateRequest req) {
+        if (req == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Request is null");
+        if (req.getGroupId() == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "groupId is required");
+        if (req.getLessonDate() == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "lessonDate is required");
+
+        // TEACHER bo‘lsa: faqat o‘z group’iga lesson qo‘sha olsin
+        UserPrincipal me = me();
+        if ("TEACHER".equals(me.getRole())) {
+            if (me.getTeacherId() == null) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "TeacherId is missing");
+            }
+            boolean ok = groupRepo.existsByGroupIdAndTeacherId(req.getGroupId(), me.getTeacherId());
+            if (!ok) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "This group is not yours");
+        }
+
+        Lesson l = new Lesson();
+        l.setLessonId(UUID.randomUUID()); // agar DB default UUID bo'lsa, buni olib tashlasa ham bo'ladi
+        l.setGroupId(req.getGroupId());
+        l.setLessonDate(req.getLessonDate());
+        l.setTopic(req.getTopic());
+
+        return lessonRepo.save(l);
+    }
+
+    public List<Lesson> byGroup(UUID groupId) {
+        if (groupId == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "groupId is required");
+
+        UserPrincipal me = me();
+
+        // TEACHER bo‘lsa: faqat o‘z group’ini ko‘rsin
+        if ("TEACHER".equals(me.getRole())) {
+            if (me.getTeacherId() == null) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "TeacherId is missing");
+            }
+            boolean ok = groupRepo.existsByGroupIdAndTeacherId(groupId, me.getTeacherId());
+            if (!ok) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "This group is not yours");
+        }
+
+        return lessonRepo.findByGroupIdOrderByLessonDateAsc(groupId);
+    }
+
+    private UserPrincipal me() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof UserPrincipal p)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
+        }
+        return p;
+    }
+}
