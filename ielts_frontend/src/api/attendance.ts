@@ -1,20 +1,20 @@
 import api from './axios';
 import type { AttendanceRecord, AttendanceMarkRequest } from '../types';
 
-export const getAttendanceByLesson = (lessonId: number) =>
+export const getAttendanceByLesson = (lessonId: string | number) =>
   api.get<AttendanceRecord[]>(`/attendance/by-lesson/${lessonId}`).then((r) => r.data);
 
-export const getAttendanceByStudent = (studentId: number) =>
+export const getAttendanceByStudent = (studentId: string | number) =>
   api.get<AttendanceRecord[]>(`/attendance/by-student/${studentId}`).then((r) => r.data);
 
 export const markAttendance = (data: AttendanceMarkRequest) =>
   api.post('/attendance', data).then((r) => r.data);
 
-export const bulkMarkAttendance = (lessonId: number, records: AttendanceMarkRequest[]) =>
+export const bulkMarkAttendance = (lessonId: string | number, records: AttendanceMarkRequest[]) =>
   api.post(`/attendance/by-lesson/${lessonId}/bulk`, { records }).then((r) => r.data);
 
-export const getStudentAttendancePercent = (studentId: number) =>
+export const getStudentAttendancePercent = (studentId: string | number) =>
   api.get<number>(`/attendance/student/${studentId}/percent`).then((r) => r.data);
 
-export const getGroupAttendancePercent = (groupId: number) =>
+export const getGroupAttendancePercent = (groupId: string | number) =>
   api.get(`/attendance/group/${groupId}/percent`).then((r) => r.data);

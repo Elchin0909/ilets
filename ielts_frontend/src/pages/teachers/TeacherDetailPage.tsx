@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { ArrowLeft, Phone, Mail, Layers, Users, KeyRound } from 'lucide-react';
 import { getTeacher } from '../../api/teachers';
 import { getGroups, getGroupEnrollments } from '../../api/groups';
@@ -40,7 +40,6 @@ function GroupStudentsPanel({ groupId, groupName }: { groupId: string; groupName
 export default function TeacherDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const { user } = useAuth();
   const teacherId = id ?? '';
 

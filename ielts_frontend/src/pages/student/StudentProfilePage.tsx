@@ -1,6 +1,5 @@
 import { useAuth } from '../../contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
-import { getGroupEnrollments } from '../../api/groups';
 import { getGroups } from '../../api/groups';
 import { getStudents } from '../../api/students';
 import { BookOpen, Users, GraduationCap } from 'lucide-react';
