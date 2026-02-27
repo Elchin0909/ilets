@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -27,4 +28,16 @@ public interface UserRepository extends JpaRepository<User, UUID> {
             nativeQuery = true
     )
     Optional<User> findByTeacherId(@Param("teacherId") UUID teacherId);
+
+    @Query(
+            value = "select * from app.users where student_id = :studentId limit 1",
+            nativeQuery = true
+    )
+    Optional<User> findByStudentId(@Param("studentId") UUID studentId);
+
+    @Query(
+            value = "select * from app.users where role = 'STUDENT' and is_active = false order by created_at desc",
+            nativeQuery = true
+    )
+    List<User> findPendingStudents();
 }

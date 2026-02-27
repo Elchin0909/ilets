@@ -1,20 +1,89 @@
 package com.example.ielts.controller;
 
+import com.example.ielts.entity.User;
+import com.example.ielts.repo.StudentRepository;
+import com.example.ielts.repo.UserRepository;
+import com.example.ielts.service.AuthService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/admin")
+@RequiredArgsConstructor
 public class AdminController {
 
-    @GetMapping("/something")
+    private final UserRepository userRepo;
+    private final StudentRepository studentRepo;
+    private final AuthService authService;
+
+    @GetMapping("/users")
     @PreAuthorize("hasRole('ADMIN')")
-    public Map<String, Object> something() {
-        return Map.of(
-                "ok", true,
-                "msg", "admin endpoint works"
-        );
+    public List<Map<String, Object>> listUsers() {
+        return userRepo.findAll().stream().map(u -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("userId", u.getUserId());
+            m.put("username", u.getUsername());
+            m.put("role", u.getRole());
+            m.put("enabled", u.isEnabled());
+            m.put("teacherId", u.getTeacherId());
+            m.put("createdAt", u.getCreatedAt());
+            return m;
+        }).toList();
+    }
+
+    @PostMapping("/users/{userId}/reset-password")
+    @PreAuthorize("hasRole('ADMIN')")
+    public Map<String, Object> resetUserPassword(
+            @PathVariable UUID userId,
+            @RequestBody Map<String, String> body
+    ) {
+        String newPassword = body.get("newPassword");
+        if (newPassword == null || newPassword.length() < 4) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Parol kamida 4 ta belgidan iborat bo'lishi kerak");
+        }
+        User user = userRepo.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        authService.updatePassword(user, newPassword);
+        return Map.of("ok", true);
+    }
+
+    // ===== PENDING STUDENT NOTIFICATIONS (ADMIN + RECEPTION) =====
+
+    @GetMapping("/pending-students")
+    @PreAuthorize("hasAnyRole('ADMIN','RECEPTION')")
+    public List<Map<String, Object>> listPendingStudents() {
+        return userRepo.findPendingStudents().stream().map(u -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("userId", u.getUserId());
+            m.put("username", u.getUsername());
+            m.put("studentId", u.getStudentId());
+            m.put("createdAt", u.getCreatedAt());
+            if (u.getStudentId() != null) {
+                studentRepo.findById(u.getStudentId()).ifPresent(s -> {
+                    m.put("fullName", s.getFullName());
+                    m.put("phone", s.getPhone());
+                    m.put("email", s.getEmail());
+                });
+            }
+            return m;
+        }).toList();
+    }
+
+    @PostMapping("/pending-students/{studentId}/approve")
+    @PreAuthorize("hasAnyRole('ADMIN','RECEPTION')")
+    public Map<String, Object> approveStudent(@PathVariable UUID studentId) {
+        User user = userRepo.findByStudentId(studentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Student user not found"));
+        user.setActive(true);
+        userRepo.save(user);
+        return Map.of("ok", true);
     }
 }

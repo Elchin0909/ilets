@@ -18,19 +18,19 @@ public class SeedConfig {
     @Bean
     CommandLineRunner seedDefaultUser() {
         return args -> {
-            String username = "farishta";
+            String username = "admin";
             String rawPassword = "1234";
 
             if (userRepo.existsByUsername(username)) return;
 
             User u = new User();
             u.setUsername(username);
-            u.setPasswordHash(passwordEncoder.encode(rawPassword)); // noming boshqacha bo‘lishi mumkin
-            u.setRole("ADMIN"); // yoki "TEACHER" — senga qaysi kerak bo‘lsa
+            u.setPasswordHash(passwordEncoder.encode(rawPassword));
+            u.setRole("ADMIN");
             u.setEnabled(true);
 
             userRepo.save(u);
-            System.out.println("✅ Seeded default user: farishta / 1234");
+            System.out.println("✅ Seeded default user: admin / 1234");
         };
     }
 }

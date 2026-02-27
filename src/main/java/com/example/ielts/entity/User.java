@@ -36,6 +36,10 @@ public class User {
 
     @Column(name = "teacher_id")
     private UUID teacherId;
+
+    @Column(name = "student_id")
+    private UUID studentId;
+
     public boolean isEnabled() {
         return enabled;
     }
@@ -64,4 +68,7 @@ public class User {
 
     public UUID getTeacherId() { return teacherId; }
     public void setTeacherId(UUID teacherId) { this.teacherId = teacherId; }
+
+    public UUID getStudentId() { return studentId; }
+    public void setStudentId(UUID studentId) { this.studentId = studentId; }
 }

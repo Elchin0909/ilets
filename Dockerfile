@@ -1,19 +1,21 @@
-# --- build stage ---
-FROM maven:3.9-eclipse-temurin-21 AS build
+# ── Stage 1: Build ─────────────────────────────────────────────────────────────
+FROM maven:3.9-eclipse-temurin-17 AS build
 WORKDIR /app
 
-# cache uchun avval dependency
 COPY pom.xml .
 COPY .mvn .mvn
 COPY mvnw mvnw
+RUN chmod +x mvnw
+RUN ./mvnw dependency:go-offline -q
 
-# endi source
 COPY src ./src
-RUN ./mvnw -q -DskipTests package || mvn -q -DskipTests package
+RUN ./mvnw -q -DskipTests package
 
-# --- run stage ---
-FROM eclipse-temurin:21-jre
+# ── Stage 2: Run ───────────────────────────────────────────────────────────────
+FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
+
 COPY --from=build /app/target/*.jar app.jar
-EXPOSE 8080
-ENTRYPOINT ["java","-jar","app.jar"]
+
+EXPOSE 8081
+ENTRYPOINT ["java", "-jar", "app.jar"]

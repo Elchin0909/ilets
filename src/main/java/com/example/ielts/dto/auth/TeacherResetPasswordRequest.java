@@ -11,6 +11,6 @@ public class TeacherResetPasswordRequest {
     public UUID teacherId;
 
     @NotBlank
-    @Size(min = 6, max = 80)
+    @Size(min = 4, max = 80)
     public String newPassword;
 }

@@ -13,8 +13,12 @@ import com.example.ielts.security.UserPrincipal;
 import com.example.ielts.service.AuthService;
 import com.example.ielts.service.AuthTokenService;
 import com.example.ielts.service.AdminOtpService;
+import com.example.ielts.entity.Student;
+import com.example.ielts.entity.User;
+import com.example.ielts.repo.StudentRepository;
 import com.example.ielts.repo.TeacherRepository;
 import com.example.ielts.repo.UserRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -38,6 +42,45 @@ public class AuthController {
     private final AdminOtpService adminOtpService;
     private final TeacherRepository teacherRepo;
     private final UserRepository userRepo;
+    private final StudentRepository studentRepo;
+    private final PasswordEncoder passwordEncoder;
+
+    // ===== STUDENT REGISTRATION (public) =====
+    @PostMapping("/register")
+    public Map<String, Object> register(@RequestBody Map<String, String> body) {
+        String username = body.get("username");
+        String password = body.get("password");
+        String fullName = body.get("fullName");
+        String phone    = body.getOrDefault("phone", "");
+        String email    = body.get("email");
+
+        if (username == null || username.isBlank())
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username majburiy");
+        if (password == null || password.length() < 4)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Parol kamida 4 ta belgidan iborat bo'lishi kerak");
+        if (fullName == null || fullName.isBlank())
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ism majburiy");
+        if (userRepo.existsByUsername(username))
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Bu username band. Boshqa username tanlang.");
+
+        // 1. Create Student record
+        Student student = new Student();
+        student.setFullName(fullName);
+        student.setPhone(phone);
+        student.setEmail(email);
+        student = studentRepo.save(student);
+
+        // 2. Create User record (STUDENT role, inactive until admin approves)
+        User user = new User();
+        user.setUsername(username);
+        user.setPasswordHash(passwordEncoder.encode(password));
+        user.setRole("STUDENT");
+        user.setStudentId(student.getStudentId());
+        user.setActive(false);
+        userRepo.save(user);
+
+        return Map.of("ok", true, "message", "Ro'yxatdan muvaffaqiyatli o'tdingiz! Admin tasdiqlashini kuting.");
+    }
 
     // eski login: 1 ta token (access) + role
     @PostMapping("/login")
@@ -102,6 +145,23 @@ public class AuthController {
         return Map.of("ok", true);
     }
 
+    // ===== SELF: o'z parolini o'zgartirish (har qanday rol) =====
+    @PostMapping("/change-password")
+    public Map<String, Object> changeMyPassword(Authentication authentication, @RequestBody Map<String, String> body) {
+        if (authentication == null || !authentication.isAuthenticated()
+                || !(authentication.getPrincipal() instanceof UserPrincipal me)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
+        }
+        String newPassword = body.get("newPassword");
+        if (newPassword == null || newPassword.length() < 4) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Parol kamida 4 ta belgidan iborat bo'lishi kerak");
+        }
+        var user = userRepo.findByUsername(me.getUsername())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        authService.updatePassword(user, newPassword);
+        return Map.of("ok", true);
+    }
+
     // refresh: refresh token -> yangi access + yangi refresh (rotate)
     @PostMapping("/refresh")
     public AuthResponse refresh(@RequestBody @Valid RefreshRequest req) {
@@ -154,6 +214,7 @@ public class AuthController {
         res.put("username", me.getUsername());
         res.put("role", me.getRole());
         res.put("teacherId", me.getTeacherId());
+        res.put("studentId", me.getStudentId());
 
         return res;
     }

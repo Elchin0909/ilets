@@ -76,6 +76,9 @@ public class AuthService {
         );
 
         if (!u.isActive()) {
+            if ("STUDENT".equals(u.getRole())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Hisobingiz hali tasdiqlanmagan. Admin bilan bog'laning.");
+            }
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User inactive");
         }
 
