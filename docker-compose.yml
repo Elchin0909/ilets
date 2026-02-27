@@ -17,6 +17,13 @@ services:
       timeout: 5s
       retries: 10
 
+  # ── Redis ─────────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    expose:
+      - "6379"
+
   # ── Spring Boot Backend ───────────────────────────────────────────────────────
   backend:
     build: .
@@ -24,6 +31,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_started
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/ielts_center
       SPRING_DATASOURCE_USERNAME: ielts_user
@@ -31,7 +40,17 @@ services:
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       SPRING_JPA_PROPERTIES_HIBERNATE_DEFAULT_SCHEMA: app
       SECURITY_JWT_SECRET: ${JWT_SECRET}
+      # Redis
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      # Production: xato tafsilotlarini yashirish
       SERVER_ERROR_INCLUDE_STACKTRACE: never
+      SERVER_ERROR_INCLUDE_EXCEPTION: "false"
+      SERVER_ERROR_INCLUDE_MESSAGE: never
+      # Spring banner va debug loglarini o'chirish
+      SPRING_MAIN_BANNER_MODE: "off"
+      LOGGING_LEVEL_ROOT: WARN
+      LOGGING_LEVEL_COM_EXAMPLE_IELTS: INFO
     expose:
       - "8081"
 
@@ -40,7 +59,7 @@ services:
     build: ./ielts_frontend
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "8080:80"
     depends_on:
       - backend
 
