@@ -7,6 +7,7 @@ import com.example.ielts.repo.GroupRepository;
 import com.example.ielts.repo.LessonRepository;
 import com.example.ielts.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -44,7 +45,12 @@ public class LessonService {
         l.setLessonDate(req.getLessonDate());
         l.setTopic(req.getTopic());
 
-        return lessonRepo.save(l);
+        try {
+            return lessonRepo.save(l);
+        } catch (DataIntegrityViolationException e) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Bu guruhda " + req.getLessonDate() + " sanasida dars allaqachon mavjud.");
+        }
     }
 
     public Lesson update(UUID id, LessonCreateRequest req) {
