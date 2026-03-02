@@ -12,5 +12,4 @@ public class TeacherResponse {
     public LocalDate birthDate;
     public LocalDateTime createdAt;
     public String username;
-    public String password;
 }

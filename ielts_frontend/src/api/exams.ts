@@ -10,6 +10,12 @@ export const getExam = (examId: string | number) =>
 export const createExam = (data: ExamCreateRequest) =>
   api.post<Exam>('/exams', data).then((r) => r.data);
 
+export const updateExam = (id: string | number, data: Partial<ExamCreateRequest>) =>
+  api.put<Exam>(`/exams/${id}`, data).then((r) => r.data);
+
+export const deleteExam = (id: string | number) =>
+  api.delete(`/exams/${id}`);
+
 export const getExamResults = (examId: string | number) =>
   api.get<ExamResult[]>(`/exams/${examId}/results`).then((r) => r.data);
 

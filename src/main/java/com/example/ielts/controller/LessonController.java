@@ -18,18 +18,27 @@ public class LessonController {
 
     private final LessonService service;
 
+    @PreAuthorize("hasAnyRole('ADMIN','RECEPTION','TEACHER')")
     @PostMapping
     public Lesson create(@RequestBody @Valid LessonCreateRequest req) {
         return service.create(req);
     }
 
-    // Teacher faqat o'z groupidagi lessonlarni ko'ra oladi
     @PreAuthorize("@guard.canAccessGroup(#groupId)")
     @GetMapping("/by-group/{groupId}")
     public List<Lesson> byGroup(@PathVariable UUID groupId) {
         return service.byGroup(groupId);
     }
+
+    @PreAuthorize("@guard.canAccessLesson(#id)")
+    @PutMapping("/{id}")
+    public Lesson update(@PathVariable UUID id, @RequestBody LessonCreateRequest req) {
+        return service.update(id, req);
+    }
+
+    @PreAuthorize("@guard.canAccessLesson(#id)")
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable UUID id) {
+        service.delete(id);
+    }
 }
-
-
-

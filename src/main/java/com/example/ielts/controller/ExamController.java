@@ -20,22 +20,33 @@ public class ExamController {
         this.service = service;
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN','RECEPTION','TEACHER')")
     @PostMapping
     public ExamResponse create(@RequestBody @Valid ExamCreateRequest req) {
         return service.create(req);
     }
 
-    // Teacher faqat o'z groupidagi examlarni ko'ra oladi
     @PreAuthorize("@guard.canAccessGroup(#groupId)")
     @GetMapping("/by-group/{groupId}")
     public List<ExamResponse> byGroup(@PathVariable UUID groupId) {
         return service.byGroup(groupId);
     }
 
-    // Teacher faqat o'z examini ko'ra oladi
     @PreAuthorize("@guard.canAccessExam(#examId)")
     @GetMapping("/{examId}")
     public ExamResponse get(@PathVariable UUID examId) {
         return service.get(examId);
+    }
+
+    @PreAuthorize("@guard.canAccessExam(#id)")
+    @PutMapping("/{id}")
+    public ExamResponse update(@PathVariable UUID id, @RequestBody ExamCreateRequest req) {
+        return service.update(id, req);
+    }
+
+    @PreAuthorize("@guard.canAccessExam(#id)")
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable UUID id) {
+        service.delete(id);
     }
 }

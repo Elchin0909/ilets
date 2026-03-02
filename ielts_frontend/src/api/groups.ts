@@ -65,3 +65,9 @@ export const updateEnrollmentStatus = (id: string, status: string) =>
 
 export const getEnrollmentsByStudent = (studentId: string) =>
   api.get<any[]>(`/enrollments/by-student/${studentId}`).then((r) => r.data.map(mapEnrollment));
+
+export const getGroupAttendanceSummary = (groupId: string) =>
+  api.get<any>(`/v1/teacher/dashboard/groups/${groupId}/attendance`).then((r) => r.data);
+
+export const getGroupAvgExamScore = (groupId: string) =>
+  api.get<any>(`/v1/teacher/dashboard/groups/${groupId}/avg-exam-score`).then((r) => r.data);

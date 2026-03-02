@@ -38,7 +38,6 @@ public class TeacherService {
         t.setEmail(req.email);
         t.setBirthDate(req.birthDate);
         t.setLoginUsername(req.username);
-        t.setLoginPassword(req.password);
 
         Teacher saved = repo.save(t);
 
@@ -70,7 +69,6 @@ public class TeacherService {
         t.setEmail(req.email);
         t.setBirthDate(req.birthDate);
         t.setLoginUsername(req.username);
-        t.setLoginPassword(req.password);
 
         Teacher saved = repo.save(t);
 
@@ -109,7 +107,6 @@ public class TeacherService {
         r.birthDate = t.getBirthDate();
         r.createdAt = t.getCreatedAt();
         r.username = t.getLoginUsername();
-        r.password = t.getLoginPassword();
         return r;
     }
 }

@@ -4,6 +4,7 @@ import com.example.ielts.dto.CourseCreateRequest;
 import com.example.ielts.dto.CourseResponse;
 import com.example.ielts.service.CourseService;
 import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,6 +20,7 @@ public class CourseController {
         this.service = service;
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN','RECEPTION')")
     @PostMapping
     public CourseResponse create(@RequestBody @Valid CourseCreateRequest req) {
         return service.create(req);
@@ -34,12 +36,14 @@ public class CourseController {
         return service.get(id);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN','RECEPTION')")
     @PutMapping("/{id}")
     public CourseResponse update(@PathVariable UUID id,
                                  @RequestBody @Valid CourseCreateRequest req) {
         return service.update(id, req);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public void delete(@PathVariable UUID id) {
         service.delete(id);

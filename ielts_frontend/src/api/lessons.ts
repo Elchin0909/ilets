@@ -6,3 +6,9 @@ export const getLessonsByGroup = (groupId: string | number) =>
 
 export const createLesson = (data: LessonCreateRequest) =>
   api.post<Lesson>('/lessons', data).then((r) => r.data);
+
+export const updateLesson = (id: string | number, data: Partial<LessonCreateRequest>) =>
+  api.put<Lesson>(`/lessons/${id}`, data).then((r) => r.data);
+
+export const deleteLesson = (id: string | number) =>
+  api.delete(`/lessons/${id}`);
