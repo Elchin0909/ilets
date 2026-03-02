@@ -51,6 +51,8 @@ services:
       SPRING_MAIN_BANNER_MODE: "off"
       LOGGING_LEVEL_ROOT: WARN
       LOGGING_LEVEL_COM_EXAMPLE_IELTS: INFO
+      # AI Integration
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:}
     expose:
       - "8081"
 

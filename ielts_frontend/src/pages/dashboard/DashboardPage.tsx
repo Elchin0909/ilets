@@ -1,11 +1,13 @@
+import { useState, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Users, GraduationCap, Layers, BookOpen, TrendingUp, ArrowRight } from 'lucide-react';
+import { Users, GraduationCap, Layers, BookOpen, TrendingUp, ArrowRight, BotMessageSquare, X, Send, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getStudents } from '../../api/students';
 import { getTeachers } from '../../api/teachers';
 import { getGroups } from '../../api/groups';
 import { getCourses } from '../../api/courses';
 import { useAuth } from '../../contexts/AuthContext';
+import { aiChat } from '../../api/ai';
 
 interface StatCardProps {
   label: string;
@@ -43,6 +45,115 @@ function SkeletonCard() {
         <div className="h-8 bg-gray-100 rounded w-16" />
       </div>
     </div>
+  );
+}
+
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  text: string;
+}
+
+function AiChatWidget() {
+  const [open, setOpen] = useState(false);
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    { role: 'assistant', text: "Salom! Men IELTS markazi yordamchisiman. Savollaringizga javob berishga tayyorman 🎓" },
+  ]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (open) bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, open]);
+
+  const send = async () => {
+    const msg = input.trim();
+    if (!msg || loading) return;
+    setInput('');
+    setMessages((prev) => [...prev, { role: 'user', text: msg }]);
+    setLoading(true);
+    try {
+      const reply = await aiChat(msg);
+      setMessages((prev) => [...prev, { role: 'assistant', text: reply }]);
+    } catch {
+      setMessages((prev) => [...prev, { role: 'assistant', text: "Kechirasiz, xatolik yuz berdi. Qaytadan urinib ko'ring." }]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <>
+      {/* Floating button */}
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl shadow-lg flex items-center justify-center transition-all hover:scale-105"
+        title="AI Yordamchi"
+      >
+        {open ? <X size={22} /> : <BotMessageSquare size={22} />}
+      </button>
+
+      {/* Chat panel */}
+      {open && (
+        <div className="fixed bottom-24 right-6 z-50 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden"
+          style={{ maxHeight: '70vh' }}>
+          {/* Header */}
+          <div className="bg-indigo-600 px-4 py-3 flex items-center gap-3">
+            <div className="w-8 h-8 bg-indigo-500 rounded-xl flex items-center justify-center">
+              <BotMessageSquare size={16} className="text-white" />
+            </div>
+            <div>
+              <p className="text-white font-semibold text-sm">IELTS AI Yordamchi</p>
+              <p className="text-indigo-200 text-xs">Powered by Claude</p>
+            </div>
+            <button onClick={() => setOpen(false)} className="ml-auto text-indigo-200 hover:text-white transition">
+              <X size={18} />
+            </button>
+          </div>
+
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 bg-gray-50">
+            {messages.map((m, i) => (
+              <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[80%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${
+                  m.role === 'user'
+                    ? 'bg-indigo-600 text-white rounded-br-sm'
+                    : 'bg-white text-gray-800 border border-gray-100 shadow-sm rounded-bl-sm'
+                }`}>
+                  {m.text}
+                </div>
+              </div>
+            ))}
+            {loading && (
+              <div className="flex justify-start">
+                <div className="bg-white border border-gray-100 rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
+                  <Loader2 size={16} className="animate-spin text-indigo-400" />
+                </div>
+              </div>
+            )}
+            <div ref={bottomRef} />
+          </div>
+
+          {/* Input */}
+          <div className="px-3 py-3 border-t border-gray-100 bg-white flex gap-2">
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && send()}
+              placeholder="Savol yozing..."
+              className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 placeholder:text-gray-300"
+            />
+            <button
+              onClick={send}
+              disabled={!input.trim() || loading}
+              className="w-9 h-9 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-100 text-white rounded-xl flex items-center justify-center transition flex-shrink-0"
+            >
+              <Send size={15} />
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -166,7 +277,7 @@ export default function DashboardPage() {
             { to: '/students', label: 'Talabalar', icon: Users, color: 'text-blue-600 bg-blue-50 hover:bg-blue-100' },
             { to: isTeacher ? '/groups' : '/teachers', label: isTeacher ? 'Guruhlar' : "O'qituvchilar", icon: isTeacher ? Layers : GraduationCap, color: 'text-purple-600 bg-purple-50 hover:bg-purple-100' },
             { to: '/attendance', label: 'Davomat', icon: TrendingUp, color: 'text-green-600 bg-green-50 hover:bg-green-100' },
-            { to: '/exams', label: 'Imtihonlar', icon: BookOpen, color: 'text-orange-600 bg-orange-50 hover:bg-orange-100' },
+            { to: '/ai/writing', label: 'AI Writing', icon: BookOpen, color: 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100' },
           ].map(({ to, label, icon: Icon, color }) => (
             <Link key={to} to={to}
               className={`flex flex-col items-center gap-2.5 p-4 rounded-xl ${color} transition text-center`}>
@@ -176,6 +287,9 @@ export default function DashboardPage() {
           ))}
         </div>
       </div>
+
+      {/* AI Chat Widget */}
+      <AiChatWidget />
     </div>
   );
 }
