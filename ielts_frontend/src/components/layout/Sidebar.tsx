@@ -13,6 +13,7 @@ import {
   UserCircle,
   PenLine,
   BarChart2,
+  CreditCard,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -26,6 +27,7 @@ const navItems = [
   { to: '/exams', label: 'Imtihonlar', icon: ClipboardList, roles: ['ADMIN', 'TEACHER', 'RECEPTION'] },
   { to: '/attendance', label: 'Davomat', icon: FileText, roles: ['ADMIN', 'TEACHER', 'RECEPTION'] },
   { to: '/ai/writing', label: 'AI Writing', icon: PenLine, roles: ['ADMIN', 'TEACHER', 'RECEPTION'] },
+  { to: '/payments', label: "To'lovlar", icon: CreditCard, roles: ['ADMIN', 'RECEPTION'] },
   { to: '/analytics', label: 'Statistika', icon: BarChart2, roles: ['ADMIN', 'RECEPTION'] },
   { to: '/users', label: 'Foydalanuvchilar', icon: ShieldCheck, roles: ['ADMIN'] },
   { to: '/student-profile', label: 'Mening Profilim', icon: UserCircle, roles: ['STUDENT'] },

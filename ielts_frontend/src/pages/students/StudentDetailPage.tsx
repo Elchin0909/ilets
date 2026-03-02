@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Phone, Mail, Users, ClipboardList, FileText, BrainCircuit, Loader2, UserPlus } from 'lucide-react';
+import { ArrowLeft, Phone, Mail, Users, ClipboardList, FileText, BrainCircuit, Loader2, UserPlus, CreditCard, TrendingUp } from 'lucide-react';
 import { getStudent } from '../../api/students';
 import { getEnrollments, getGroups, createEnrollment } from '../../api/groups';
 import { getStudentExamResults } from '../../api/exams';
 import { getAttendanceByStudent } from '../../api/attendance';
 import { predictBand, type BandPredictionResponse } from '../../api/ai';
+import { getStudentPayments, getStudentTotal, type Payment } from '../../api/payments';
 import Badge from '../../components/ui/Badge';
 import Table from '../../components/ui/Table';
 import Modal from '../../components/ui/Modal';
@@ -180,6 +181,18 @@ export default function StudentDetailPage() {
     queryFn: () => getAttendanceByStudent(studentId),
   });
 
+  const { data: payments = [] } = useQuery({
+    queryKey: ['studentPayments', studentId],
+    queryFn: () => getStudentPayments(studentId),
+    enabled: !!studentId,
+  });
+
+  const { data: paymentTotal = 0 } = useQuery({
+    queryKey: ['studentPaymentTotal', studentId],
+    queryFn: () => getStudentTotal(studentId),
+    enabled: !!studentId,
+  });
+
   const studentEnrollments = allEnrollments.filter(e => String(e.studentId) === String(studentId));
 
   const presentCount = attendance.filter(a => a.status === 'PRESENT').length;
@@ -189,9 +202,11 @@ export default function StudentDetailPage() {
     ? Math.round((presentCount / attendance.length) * 100)
     : 0;
 
-  const avgScore = examResults.length > 0 && examResults.some(r => r.score != null)
+  // avgScore calculated for chart use
+  const _avgScore = examResults.length > 0 && examResults.some(r => r.score != null)
     ? (examResults.filter(r => r.score != null).reduce((sum, r) => sum + (r.score ?? 0), 0) / examResults.filter(r => r.score != null).length).toFixed(1)
     : '—';
+  void _avgScore;
 
   if (loadingStudent) {
     return (
@@ -235,7 +250,7 @@ export default function StudentDetailPage() {
         <StatCard label="Guruhlar soni" value={studentEnrollments.length} icon={Users} color="bg-blue-500" />
         <StatCard label="Davomat %" value={`${attendancePercent}%`} icon={FileText} color="bg-green-500" />
         <StatCard label="Imtihonlar" value={examResults.length} icon={ClipboardList} color="bg-purple-500" />
-        <StatCard label="O'rtacha ball" value={avgScore} icon={ClipboardList} color="bg-orange-500" />
+        <StatCard label="To'langan jami" value={new Intl.NumberFormat('uz-UZ').format(Number(paymentTotal)) + ' UZS'} icon={CreditCard} color="bg-teal-500" />
       </div>
 
       {/* Enrollments */}
@@ -328,6 +343,78 @@ export default function StudentDetailPage() {
       <Modal isOpen={showEnroll} onClose={() => setShowEnroll(false)} title="Guruhga yozish">
         <EnrollModal studentId={studentId} onClose={() => setShowEnroll(false)} />
       </Modal>
+
+      {/* To'lovlar tarixi */}
+      <div className="bg-white rounded-xl border border-gray-200 mb-6">
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+          <h2 className="font-semibold text-gray-800 flex items-center gap-2">
+            <CreditCard size={16} className="text-teal-500" /> To'lovlar
+          </h2>
+          <span className="text-xs text-gray-400">{payments.length} ta yozuv</span>
+        </div>
+        {payments.length === 0 ? (
+          <div className="py-8 text-center text-gray-400 text-sm">To'lovlar yo'q</div>
+        ) : (
+          <div className="divide-y divide-gray-50 max-h-52 overflow-y-auto">
+            {payments.slice(0, 8).map((p: Payment) => (
+              <div key={p.paymentId} className="flex items-center justify-between px-5 py-3">
+                <div>
+                  <p className="text-sm font-medium text-gray-700">
+                    {p.type === 'MONTHLY' ? `${p.month ?? ''} oylik` : p.type === 'REGISTRATION' ? "Ro'yxatdan o'tish" : 'Boshqa'}
+                  </p>
+                  {p.notes && <p className="text-xs text-gray-400">{p.notes}</p>}
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-bold text-teal-600">
+                    {new Intl.NumberFormat('uz-UZ').format(Number(p.amount))} {p.currency}
+                  </p>
+                  <p className="text-xs text-gray-400">{p.paidAt ? new Date(p.paidAt).toLocaleDateString('uz-UZ') : ''}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Imtihon natijalari grafigi */}
+      {examResults.length >= 2 && (
+        <div className="bg-white rounded-xl border border-gray-200 mb-6">
+          <div className="px-5 py-4 border-b border-gray-100">
+            <h2 className="font-semibold text-gray-800 flex items-center gap-2">
+              <TrendingUp size={16} className="text-indigo-500" /> Natijalar dinamikasi
+            </h2>
+          </div>
+          <div className="p-5">
+            {(() => {
+              const scores = examResults
+                .filter((r: ExamResult) => r.score != null)
+                .slice(-8)
+                .map((r: ExamResult, i: number) => ({ i, score: Number(r.score ?? 0) }));
+              const maxScore = 9;
+              return (
+                <div className="flex items-end gap-2 h-28">
+                  {scores.map(({ i, score }) => {
+                    const pct = Math.round((score / maxScore) * 100);
+                    const color = score >= 7 ? 'bg-green-400' : score >= 5.5 ? 'bg-yellow-400' : 'bg-red-400';
+                    return (
+                      <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                        <span className="text-xs font-semibold text-gray-600">{score}</span>
+                        <div className="w-full flex items-end justify-center" style={{ height: '80px' }}>
+                          <div
+                            className={`w-full rounded-t-lg ${color} transition-all`}
+                            style={{ height: `${pct}%` }}
+                          />
+                        </div>
+                        <span className="text-xs text-gray-300">#{i + 1}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
 
       {/* AI Band Prediction */}
       <BandPredictionCard studentId={studentId} />
