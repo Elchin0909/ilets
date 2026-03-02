@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
-import { Users, GraduationCap, Layers, BookOpen, TrendingUp, Award, BarChart2, ClipboardList } from 'lucide-react';
+import { Users, GraduationCap, Layers, BookOpen, TrendingUp, Award, BarChart2, ClipboardList, PenLine, FileText } from 'lucide-react';
 import { getStudents } from '../../api/students';
 import { getTeachers } from '../../api/teachers';
 import { getGroups, getEnrollments } from '../../api/groups';
 import { getCourses } from '../../api/courses';
+import { getWritingStats } from '../../api/ai';
 
 /* ── Helpers ─────────────────────────────── */
 function StatBlock({ icon: Icon, value, label, color, bg }: {
@@ -38,6 +39,21 @@ function BarRow({ label, value, max, color }: { label: string; value: number; ma
   );
 }
 
+const LEVEL_COLORS: Record<string, string> = {
+  Beginner:      'bg-red-400',
+  Elementary:    'bg-orange-400',
+  'Pre-IELTS':   'bg-yellow-400',
+  'IELTS Ready': 'bg-blue-400',
+  Advanced:      'bg-green-500',
+};
+const LEVEL_TEXT: Record<string, string> = {
+  Beginner:      'text-red-600',
+  Elementary:    'text-orange-600',
+  'Pre-IELTS':   'text-yellow-600',
+  'IELTS Ready': 'text-blue-600',
+  Advanced:      'text-green-600',
+};
+
 /* ── Main ──────────────────────────────────── */
 export default function AnalyticsPage() {
   const { data: students = [], isLoading: ls } = useQuery({ queryKey: ['students'], queryFn: getStudents });
@@ -45,6 +61,7 @@ export default function AnalyticsPage() {
   const { data: groups = [], isLoading: lg } = useQuery({ queryKey: ['groups'], queryFn: getGroups });
   const { data: courses = [], isLoading: lc } = useQuery({ queryKey: ['courses'], queryFn: getCourses });
   const { data: enrollments = [] } = useQuery({ queryKey: ['enrollments'], queryFn: getEnrollments });
+  const { data: writingStats } = useQuery({ queryKey: ['writing-stats'], queryFn: getWritingStats });
 
   const loading = ls || lt || lg || lc;
 
@@ -90,6 +107,13 @@ export default function AnalyticsPage() {
     if (s in statusCounts) statusCounts[s]++;
   });
   const totalEnr = enrollments.length || 1;
+
+  /* Writing stats */
+  const writingByLevel = Object.entries(writingStats?.byLevel ?? {}).sort((a, b) => b[1] - a[1]);
+  const maxWritingLevel = Math.max(...writingByLevel.map(([, v]) => v), 1);
+  const task1Count = writingStats?.byTaskType?.['task1'] ?? 0;
+  const task2Count = writingStats?.byTaskType?.['task2'] ?? 0;
+  const totalTasks = (task1Count + task2Count) || 1;
 
   if (loading) {
     return (
@@ -177,7 +201,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Courses */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+      <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm mb-5">
         <h2 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
           <ClipboardList size={16} className="text-orange-500" /> Kurslar — Talabalar soni
         </h2>
@@ -192,8 +216,124 @@ export default function AnalyticsPage() {
         )}
       </div>
 
+      {/* ── AI Writing Statistikasi ─────────────────────────────────── */}
+      {writingStats && (
+        <>
+          <div className="flex items-center gap-3 mb-4 mt-2">
+            <div className="w-9 h-9 bg-indigo-100 rounded-xl flex items-center justify-center">
+              <PenLine size={16} className="text-indigo-600" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-gray-900">AI Writing Statistikasi</h2>
+              <p className="text-xs text-gray-500">Jami {writingStats.total} ta tekshiruv amalga oshirilgan</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+            {/* Level distribution */}
+            <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+              <h3 className="font-semibold text-gray-800 mb-4 text-sm flex items-center gap-2">
+                <BarChart2 size={15} className="text-indigo-500" /> Darajalar bo'yicha
+              </h3>
+              {writingByLevel.length === 0 ? (
+                <p className="text-center text-gray-400 text-sm py-6">Hali tekshiruv yo'q</p>
+              ) : (
+                <div className="space-y-2.5">
+                  {writingByLevel.map(([level, count]) => (
+                    <BarRow
+                      key={level}
+                      label={level}
+                      value={count}
+                      max={maxWritingLevel}
+                      color={LEVEL_COLORS[level] ?? 'bg-indigo-400'}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Task type breakdown */}
+            <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+              <h3 className="font-semibold text-gray-800 mb-4 text-sm flex items-center gap-2">
+                <FileText size={15} className="text-blue-500" /> Task turi bo'yicha
+              </h3>
+              {(task1Count + task2Count) === 0 ? (
+                <p className="text-center text-gray-400 text-sm py-6">Hali tekshiruv yo'q</p>
+              ) : (
+                <div className="space-y-5">
+                  {[
+                    { label: 'Task 1 (Report/Letter)', count: task1Count, color: 'bg-blue-400', textColor: 'text-blue-700' },
+                    { label: 'Task 2 (Essay)', count: task2Count, color: 'bg-indigo-500', textColor: 'text-indigo-700' },
+                  ].map(({ label, count, color, textColor }) => (
+                    <div key={label}>
+                      <div className="flex justify-between text-xs mb-1.5">
+                        <span className="text-gray-600 font-medium">{label}</span>
+                        <span className={`font-bold ${textColor}`}>
+                          {count} ta ({Math.round((count / totalTasks) * 100)}%)
+                        </span>
+                      </div>
+                      <div className="h-4 bg-gray-100 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full ${color} rounded-full transition-all duration-700`}
+                          style={{ width: `${Math.round((count / totalTasks) * 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Recent writing logs table */}
+          {writingStats.recent.length > 0 && (
+            <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm mb-5">
+              <h3 className="font-semibold text-gray-800 mb-4 text-sm flex items-center gap-2">
+                <PenLine size={15} className="text-indigo-500" /> So'nggi tekshiruvlar
+              </h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-xs text-gray-400 border-b border-gray-100">
+                      <th className="text-left pb-2.5 font-medium">Talaba</th>
+                      <th className="text-left pb-2.5 font-medium">Task</th>
+                      <th className="text-left pb-2.5 font-medium">Daraja</th>
+                      <th className="text-left pb-2.5 font-medium">Band</th>
+                      <th className="text-left pb-2.5 font-medium">Vaqt</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {writingStats.recent.map((log: any) => (
+                      <tr key={log.logId} className="hover:bg-gray-50 transition">
+                        <td className="py-2.5 text-gray-700 font-medium">
+                          {log.studentName ?? <span className="text-gray-400 italic text-xs">—</span>}
+                        </td>
+                        <td className="py-2.5 text-gray-500 text-xs">
+                          {log.taskType === 'task1' ? 'Task 1' : 'Task 2'}
+                        </td>
+                        <td className="py-2.5">
+                          <span className={`text-xs font-semibold ${LEVEL_TEXT[log.level] ?? 'text-gray-600'}`}>
+                            {log.level}
+                          </span>
+                        </td>
+                        <td className="py-2.5 text-gray-600 font-mono text-xs">{log.bandRange}</td>
+                        <td className="py-2.5 text-gray-400 text-xs">
+                          {new Date(log.createdAt).toLocaleDateString('uz-UZ', {
+                            day: '2-digit', month: '2-digit', year: 'numeric',
+                          })}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
       {/* Summary cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-2">
         <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm text-center">
           <TrendingUp size={20} className="text-indigo-400 mx-auto mb-2" />
           <p className="text-2xl font-bold text-gray-900">{enrollments.length}</p>

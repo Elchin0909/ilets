@@ -28,7 +28,7 @@ app:
     secret: "CHANGE_ME_TO_A_LONG_RANDOM_STRING_AT_LEAST_32_CHARS"
     issuer: "ielts-centre"
 
-anthropic:
+openai:
   api:
-    key: ${ANTHROPIC_API_KEY:}
-    model: claude-3-5-haiku-20241022
+    key: ${OPENAI_API_KEY:}
+    model: gpt-4o-mini

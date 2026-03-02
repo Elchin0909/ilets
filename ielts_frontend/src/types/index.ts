@@ -107,7 +107,7 @@ export interface Lesson {
 }
 
 export interface LessonCreateRequest {
-  groupId: number;
+  groupId: string | number;
   lessonDate: string;
   topic?: string;
 }
@@ -122,7 +122,7 @@ export interface Exam {
 }
 
 export interface ExamCreateRequest {
-  groupId: number;
+  groupId: string | number;
   examDate: string;
   title?: string;
   maxScore?: number;

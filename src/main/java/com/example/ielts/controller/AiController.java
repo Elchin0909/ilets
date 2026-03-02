@@ -30,7 +30,7 @@ public class AiController {
     @PostMapping("/assess-writing")
     @PreAuthorize("isAuthenticated()")
     public WritingAssessResponse assessWriting(@RequestBody WritingAssessRequest req) {
-        return aiService.assessWriting(req.text, req.taskType);
+        return aiService.assessWriting(req.text, req.taskType, req.studentId);
     }
 
     @PostMapping("/chat")

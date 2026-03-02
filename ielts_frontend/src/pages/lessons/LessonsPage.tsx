@@ -11,15 +11,15 @@ import { showSuccess, showError } from '../../utils/toast';
 
 export default function LessonsPage() {
   const queryClient = useQueryClient();
-  const [selectedGroupId, setSelectedGroupId] = useState<number>(0);
+  const [selectedGroupId, setSelectedGroupId] = useState<string>('');
   const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState<LessonCreateRequest>({ groupId: 0, lessonDate: '', topic: '' });
+  const [form, setForm] = useState<LessonCreateRequest>({ groupId: '', lessonDate: '', topic: '' });
 
   const { data: groups = [] } = useQuery({ queryKey: ['groups'], queryFn: getGroups });
   const { data: lessons = [], isLoading } = useQuery({
     queryKey: ['lessons', selectedGroupId],
     queryFn: () => getLessonsByGroup(selectedGroupId),
-    enabled: selectedGroupId > 0,
+    enabled: !!selectedGroupId,
   });
 
   const createMutation = useMutation({
@@ -76,7 +76,7 @@ export default function LessonsPage() {
       <div className="mb-4">
         <select
           value={selectedGroupId}
-          onChange={(e) => setSelectedGroupId(Number(e.target.value))}
+          onChange={(e) => { setSelectedGroupId(e.target.value); setForm((f) => ({ ...f, groupId: e.target.value })); }}
           className="px-4 py-2.5 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
         >
           <option value="">Guruhni tanlang...</option>
@@ -86,7 +86,7 @@ export default function LessonsPage() {
         </select>
       </div>
 
-      {selectedGroupId > 0 ? (
+      {selectedGroupId ? (
         <Table columns={columns} data={lessons} keyField="id" loading={isLoading} emptyMessage="Bu guruhda darslar yo'q" />
       ) : (
         <div className="bg-white rounded-xl border border-gray-200 py-16 text-center text-gray-400">
@@ -101,7 +101,7 @@ export default function LessonsPage() {
             <select
               required
               value={form.groupId}
-              onChange={(e) => setForm({ ...form, groupId: Number(e.target.value) })}
+              onChange={(e) => setForm({ ...form, groupId: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               <option value="">Guruhni tanlang</option>

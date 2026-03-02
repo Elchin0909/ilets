@@ -10,7 +10,7 @@ import Table from '../../components/ui/Table';
 import { showSuccess, showError } from '../../utils/toast';
 
 export default function ExamsPage() {
-  const [selectedGroupId, setSelectedGroupId] = useState<number>(0);
+  const [selectedGroupId, setSelectedGroupId] = useState<string>('');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -18,7 +18,7 @@ export default function ExamsPage() {
   const { data: exams = [], isLoading } = useQuery({
     queryKey: ['exams', selectedGroupId],
     queryFn: () => getExamsByGroup(selectedGroupId),
-    enabled: selectedGroupId > 0,
+    enabled: !!selectedGroupId,
   });
 
   const deleteMutation = useMutation({
@@ -63,14 +63,14 @@ export default function ExamsPage() {
       <div className="mb-4">
         <select
           value={selectedGroupId}
-          onChange={(e) => setSelectedGroupId(Number(e.target.value))}
+          onChange={(e) => setSelectedGroupId(e.target.value)}
           className="px-4 py-2.5 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
         >
           <option value="">Guruhni tanlang...</option>
           {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
         </select>
       </div>
-      {selectedGroupId > 0 ? (
+      {selectedGroupId ? (
         <Table columns={columns} data={exams} keyField="id" loading={isLoading} emptyMessage="Bu guruhda imtihonlar yo'q" />
       ) : (
         <div className="bg-white rounded-xl border border-gray-200 py-16 text-center text-gray-400">

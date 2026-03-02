@@ -3,10 +3,12 @@ package com.example.ielts.service;
 import com.example.ielts.dto.BandPredictionResponse;
 import com.example.ielts.dto.WritingAssessResponse;
 import com.example.ielts.entity.ExamResult;
+import com.example.ielts.entity.WritingLog;
 import com.example.ielts.repo.ExamResultRepository;
-import com.example.ielts.repo.StudentRepository;
 import com.example.ielts.repo.GroupRepository;
+import com.example.ielts.repo.StudentRepository;
 import com.example.ielts.repo.TeacherRepository;
+import com.example.ielts.repo.WritingLogRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,31 +21,35 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
 public class AiService {
 
-    @Value("${anthropic.api.key:}")
+    @Value("${openai.api.key:}")
     private String apiKey;
 
-    @Value("${anthropic.api.model:claude-3-5-haiku-20241022}")
+    @Value("${openai.api.model:gpt-4o-mini}")
     private String model;
 
     private final ExamResultRepository examResultRepo;
     private final StudentRepository studentRepo;
     private final GroupRepository groupRepo;
     private final TeacherRepository teacherRepo;
+    private final WritingLogRepository writingLogRepo;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public AiService(ExamResultRepository examResultRepo,
                      StudentRepository studentRepo,
                      GroupRepository groupRepo,
-                     TeacherRepository teacherRepo) {
+                     TeacherRepository teacherRepo,
+                     WritingLogRepository writingLogRepo) {
         this.examResultRepo = examResultRepo;
         this.studentRepo = studentRepo;
         this.groupRepo = groupRepo;
         this.teacherRepo = teacherRepo;
+        this.writingLogRepo = writingLogRepo;
     }
 
     // ── 1. Band Score Bashorati ────────────────────────────────────────────────
@@ -85,13 +91,13 @@ public class AiService {
                 confidence qiymatlari: "yuqori" (ko'p natija bor), "o'rta" (2-3 natija), "past" (1 ta natija)
                 """;
 
-        String raw = callAnthropic(systemPrompt, sb.toString());
+        String raw = callOpenAI(systemPrompt, sb.toString());
         return parseJson(raw, BandPredictionResponse.class);
     }
 
     // ── 2. Writing Baholash ────────────────────────────────────────────────────
 
-    public WritingAssessResponse assessWriting(String text, String taskType) {
+    public WritingAssessResponse assessWriting(String text, String taskType, UUID studentId) {
         checkApiKey();
 
         if (text == null || text.strip().split("\\s+").length < 30) {
@@ -99,7 +105,9 @@ public class AiService {
                     "Matn juda qisqa. Kamida 30 so'z kiriting.");
         }
 
-        String taskLabel = "task2".equalsIgnoreCase(taskType) ? "Task 2 (Esse / fikr bildirish)" : "Task 1 (Rasmiy / tavsiflovchi)";
+        String taskLabel = "task2".equalsIgnoreCase(taskType)
+                ? "Task 2 (Esse / fikr bildirish)"
+                : "Task 1 (Rasmiy / tavsiflovchi)";
 
         String systemPrompt = """
                 Siz malakali IELTS Writing examinator siz. Quyidagi %s yozmasini
@@ -113,12 +121,31 @@ public class AiService {
                 - Advanced:    Band 7.0+
 
                 Har bir kriteriy uchun O'zbekcha qisqa tahlil yozing (1-2 jumla).
-                Faqat JSON formatida javob bering:
+                Faqat JSON formatida javob bering, boshqa matn yozmang:
                 {"level":"Pre-IELTS","bandRange":"5.0–5.5","taskAchievement":"...","coherence":"...","grammar":"...","vocabulary":"...","recommendations":"..."}
                 """.formatted(taskLabel);
 
-        String raw = callAnthropic(systemPrompt, "Yozma matn:\n\n" + text);
-        return parseJson(raw, WritingAssessResponse.class);
+        String raw = callOpenAI(systemPrompt, "Yozma matn:\n\n" + text);
+        WritingAssessResponse result = parseJson(raw, WritingAssessResponse.class);
+
+        // WritingLog saqlash
+        try {
+            WritingLog log = new WritingLog();
+            log.setTaskType(taskType);
+            log.setLevel(result.level);
+            log.setBandRange(result.bandRange);
+            log.setTextSnippet(text.length() > 300 ? text.substring(0, 300) : text);
+            if (studentId != null) {
+                log.setStudentId(studentId);
+                studentRepo.findById(studentId)
+                        .ifPresent(s -> log.setStudentName(s.getFullName()));
+            }
+            writingLogRepo.save(log);
+        } catch (Exception ignored) {
+            // Log saqlash xatosi asosiy javobga ta'sir qilmasin
+        }
+
+        return result;
     }
 
     // ── 3. AI Chatbot ──────────────────────────────────────────────────────────
@@ -142,7 +169,7 @@ public class AiService {
                 Agar savol tizimdan tashqarida bo'lsa, IELTS bilan bog'liq maslahat bering.
                 """.formatted(studentsCount, teachersCount, groupsCount);
 
-        return callAnthropic(systemPrompt, message);
+        return callOpenAI(systemPrompt, message);
     }
 
     // ── Private helpers ────────────────────────────────────────────────────────
@@ -154,21 +181,22 @@ public class AiService {
         }
     }
 
-    private String callAnthropic(String systemPrompt, String userMessage) {
+    private String callOpenAI(String systemPrompt, String userMessage) {
         try {
-            String body = objectMapper.writeValueAsString(java.util.Map.of(
+            String body = objectMapper.writeValueAsString(Map.of(
                     "model", model,
                     "max_tokens", 1024,
-                    "system", systemPrompt,
-                    "messages", List.of(java.util.Map.of("role", "user", "content", userMessage))
+                    "messages", List.of(
+                            Map.of("role", "system", "content", systemPrompt),
+                            Map.of("role", "user", "content", userMessage)
+                    )
             ));
 
             HttpClient client = HttpClient.newHttpClient();
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("https://api.anthropic.com/v1/messages"))
-                    .header("x-api-key", apiKey)
-                    .header("anthropic-version", "2023-06-01")
-                    .header("content-type", "application/json")
+                    .uri(URI.create("https://api.openai.com/v1/chat/completions"))
+                    .header("Authorization", "Bearer " + apiKey)
+                    .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(body))
                     .build();
 
@@ -180,7 +208,7 @@ public class AiService {
             }
 
             JsonNode root = objectMapper.readTree(response.body());
-            return root.path("content").get(0).path("text").asText();
+            return root.path("choices").get(0).path("message").path("content").asText();
 
         } catch (ResponseStatusException e) {
             throw e;
@@ -192,7 +220,7 @@ public class AiService {
 
     private <T> T parseJson(String raw, Class<T> clazz) {
         try {
-            // JSON ni matndan ajratib olish (Claude ba'zan ```json ... ``` ichida qaytaradi)
+            // JSON ni matndan ajratib olish (GPT ba'zan ```json ... ``` ichida qaytaradi)
             String cleaned = raw.strip();
             int start = cleaned.indexOf('{');
             int end = cleaned.lastIndexOf('}');
