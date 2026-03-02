@@ -23,6 +23,7 @@ import ExamDetailPage from './pages/exams/ExamDetailPage';
 import AttendancePage from './pages/attendance/AttendancePage';
 import UsersPage from './pages/users/UsersPage';
 import WritingAssessmentPage from './pages/ai/WritingAssessmentPage';
+import AnalyticsPage from './pages/analytics/AnalyticsPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -66,6 +67,7 @@ export default function App() {
                 <Route path="/attendance" element={<AttendancePage />} />
                 <Route path="/users" element={<UsersPage />} />
                 <Route path="/ai/writing" element={<WritingAssessmentPage />} />
+                <Route path="/analytics" element={<AnalyticsPage />} />
                 <Route path="/student-profile" element={<StudentProfilePage />} />
               </Route>
             </Route>

@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { ArrowLeft, Phone, Mail, Users, ClipboardList, FileText, BrainCircuit, Loader2 } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { ArrowLeft, Phone, Mail, Users, ClipboardList, FileText, BrainCircuit, Loader2, UserPlus } from 'lucide-react';
 import { getStudent } from '../../api/students';
-import { getEnrollments } from '../../api/groups';
+import { getEnrollments, getGroups, createEnrollment } from '../../api/groups';
 import { getStudentExamResults } from '../../api/exams';
 import { getAttendanceByStudent } from '../../api/attendance';
 import { predictBand, type BandPredictionResponse } from '../../api/ai';
 import Badge from '../../components/ui/Badge';
 import Table from '../../components/ui/Table';
+import Modal from '../../components/ui/Modal';
 import toast from 'react-hot-toast';
 import type { Enrollment, ExamResult, AttendanceRecord } from '../../types';
 
@@ -21,6 +22,65 @@ function StatCard({ label, value, icon: Icon, color }: { label: string; value: s
       <div>
         <p className="text-xs text-gray-500">{label}</p>
         <p className="text-xl font-bold text-gray-900">{value}</p>
+      </div>
+    </div>
+  );
+}
+
+function EnrollModal({ studentId, onClose }: { studentId: string; onClose: () => void }) {
+  const queryClient = useQueryClient();
+  const [selectedGroup, setSelectedGroup] = useState('');
+
+  const { data: groups = [], isLoading } = useQuery({ queryKey: ['groups'], queryFn: getGroups });
+  const { data: enrollments = [] } = useQuery({ queryKey: ['enrollments'], queryFn: getEnrollments });
+
+  const enrolledGroupIds = enrollments
+    .filter((e) => String(e.studentId) === String(studentId))
+    .map((e) => String(e.groupId));
+
+  const availableGroups = groups.filter((g) => !enrolledGroupIds.includes(String(g.id)));
+
+  const enrollMutation = useMutation({
+    mutationFn: () => createEnrollment({ studentId, groupId: selectedGroup }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['enrollments'] });
+      toast.success("Guruhga yozildi!");
+      onClose();
+    },
+    onError: () => toast.error("Yozilishda xatolik"),
+  });
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Guruhni tanlang</label>
+        {isLoading ? (
+          <div className="h-10 bg-gray-50 rounded-lg animate-pulse" />
+        ) : availableGroups.length === 0 ? (
+          <p className="text-sm text-gray-400 py-2">Barcha guruhlarga yozilgan yoki guruhlar yo'q</p>
+        ) : (
+          <select
+            value={selectedGroup}
+            onChange={(e) => setSelectedGroup(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+          >
+            <option value="">— Guruh tanlang —</option>
+            {availableGroups.map((g) => (
+              <option key={g.id} value={String(g.id)}>{g.name}</option>
+            ))}
+          </select>
+        )}
+      </div>
+      <div className="flex justify-end gap-3">
+        <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 transition">Bekor qilish</button>
+        <button
+          onClick={() => enrollMutation.mutate()}
+          disabled={!selectedGroup || enrollMutation.isPending}
+          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white px-5 py-2 rounded-lg text-sm font-medium transition"
+        >
+          {enrollMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <UserPlus size={14} />}
+          Yozish
+        </button>
       </div>
     </div>
   );
@@ -98,6 +158,7 @@ export default function StudentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const studentId = id ?? '';
+  const [showEnroll, setShowEnroll] = useState(false);
 
   const { data: student, isLoading: loadingStudent } = useQuery({
     queryKey: ['student', studentId],
@@ -179,10 +240,16 @@ export default function StudentDetailPage() {
 
       {/* Enrollments */}
       <div className="bg-white rounded-xl border border-gray-200 mb-6">
-        <div className="px-5 py-4 border-b border-gray-100">
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <h2 className="font-semibold text-gray-800 flex items-center gap-2">
             <Users size={16} className="text-blue-500" /> Guruhlar
           </h2>
+          <button
+            onClick={() => setShowEnroll(true)}
+            className="flex items-center gap-1.5 text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg transition font-medium"
+          >
+            <UserPlus size={13} /> Guruhga yozish
+          </button>
         </div>
         <div className="p-5">
           <Table
@@ -256,6 +323,11 @@ export default function StudentDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Quick enrollment modal */}
+      <Modal isOpen={showEnroll} onClose={() => setShowEnroll(false)} title="Guruhga yozish">
+        <EnrollModal studentId={studentId} onClose={() => setShowEnroll(false)} />
+      </Modal>
 
       {/* AI Band Prediction */}
       <BandPredictionCard studentId={studentId} />
