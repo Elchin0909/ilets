@@ -8,6 +8,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import type { Group } from '../../types';
 import Modal from '../../components/ui/Modal';
 import { useState } from 'react';
+import { showSuccess, showError } from '../../utils/toast';
 
 function GroupStudentsPanel({ groupId, groupName }: { groupId: string; groupName: string }) {
   const { data: enrollments = [], isLoading } = useQuery({
@@ -73,17 +74,17 @@ export default function TeacherDetailPage() {
       setShowResetPassword(false);
       setNewPassword('');
       setConfirmPassword('');
-      alert("Parol muvaffaqiyatli o'zgartirildi!");
+      showSuccess("Parol muvaffaqiyatli o'zgartirildi!");
     },
     onError: (err: any) => {
-      alert(err?.response?.data?.message ?? 'Xatolik yuz berdi');
+      showError(err?.response?.data?.message ?? 'Xatolik yuz berdi');
     },
   });
 
   const handleResetPassword = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newPassword.length < 4) return alert('Parol kamida 6 ta belgidan iborat bo\'lishi kerak');
-    if (newPassword !== confirmPassword) return alert('Parollar mos kelmadi');
+    if (newPassword.length < 4) { showError('Parol kamida 4 ta belgidan iborat bo\'lishi kerak'); return; }
+    if (newPassword !== confirmPassword) { showError('Parollar mos kelmadi'); return; }
     resetPasswordMutation.mutate(newPassword);
   };
 

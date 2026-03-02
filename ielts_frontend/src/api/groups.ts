@@ -62,3 +62,6 @@ export const deleteEnrollment = (id: string) =>
 
 export const updateEnrollmentStatus = (id: string, status: string) =>
   api.patch(`/enrollments/${id}/status`, null, { params: { status } });
+
+export const getEnrollmentsByStudent = (studentId: string) =>
+  api.get<any[]>(`/enrollments/by-student/${studentId}`).then((r) => r.data.map(mapEnrollment));

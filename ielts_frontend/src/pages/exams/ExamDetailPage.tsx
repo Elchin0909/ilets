@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Save } from 'lucide-react';
 import { getExam, getExamResults, bulkUpsertExamResults } from '../../api/exams';
 import type { ExamResultUpsertRequest } from '../../types';
+import { showSuccess, showError } from '../../utils/toast';
 
 export default function ExamDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -44,7 +45,10 @@ export default function ExamDetailPage() {
     mutationFn: (records: ExamResultUpsertRequest[]) => bulkUpsertExamResults(examId, records),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['examResults', examId] });
-      alert('Results saved!');
+      showSuccess('Natijalar saqlandi!');
+    },
+    onError: (err: any) => {
+      showError(err?.response?.data?.message ?? 'Xatolik yuz berdi');
     },
   });
 
@@ -60,7 +64,7 @@ export default function ExamDetailPage() {
     <div>
       <button onClick={() => navigate('/exams')} className="flex items-center gap-2 text-gray-500 hover:text-gray-800 mb-4 text-sm transition">
         <ArrowLeft size={16} />
-        Back to Exams
+        Imtihonlarga qaytish
       </button>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
@@ -82,7 +86,7 @@ export default function ExamDetailPage() {
             className="flex items-center gap-1.5 text-sm px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white rounded-lg transition"
           >
             <Save size={14} />
-            {saveMutation.isPending ? 'Saving...' : 'Save Results'}
+            {saveMutation.isPending ? 'Saqlanmoqda...' : 'Natijalarni saqlash'}
           </button>
         </div>
 

@@ -6,6 +6,7 @@ import type { UserInfo } from '../../types';
 import PageHeader from '../../components/ui/PageHeader';
 import Modal from '../../components/ui/Modal';
 import Badge from '../../components/ui/Badge';
+import { showSuccess, showError } from '../../utils/toast';
 
 const roleVariant: Record<string, 'green' | 'blue' | 'yellow' | 'gray'> = {
   ADMIN: 'green',
@@ -55,17 +56,17 @@ function ResetPasswordModal({ user, onClose }: { user: UserInfo; onClose: () => 
     mutationFn: (password: string) => resetUserPassword(user.userId, password),
     onSuccess: () => {
       onClose();
-      alert("Parol muvaffaqiyatli o'zgartirildi!");
+      showSuccess("Parol muvaffaqiyatli o'zgartirildi!");
     },
     onError: (err: any) => {
-      alert(err?.response?.data?.message ?? 'Xatolik yuz berdi');
+      showError(err?.response?.data?.message ?? 'Xatolik yuz berdi');
     },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newPassword.length < 4) return alert("Parol kamida 6 ta belgidan iborat bo'lishi kerak");
-    if (newPassword !== confirmPassword) return alert('Parollar mos kelmadi');
+    if (newPassword.length < 4) { showError("Parol kamida 4 ta belgidan iborat bo'lishi kerak"); return; }
+    if (newPassword !== confirmPassword) { showError('Parollar mos kelmadi'); return; }
     mutation.mutate(newPassword);
   };
 

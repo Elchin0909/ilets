@@ -8,6 +8,7 @@ import { getAttendanceByLesson, bulkMarkAttendance } from '../../api/attendance'
 import type { AttendanceMarkRequest } from '../../types';
 import PageHeader from '../../components/ui/PageHeader';
 import Badge from '../../components/ui/Badge';
+import { showSuccess, showError } from '../../utils/toast';
 
 type AttendanceStatus = 'PRESENT' | 'ABSENT' | 'LATE';
 
@@ -51,7 +52,10 @@ export default function AttendancePage() {
       bulkMarkAttendance(selectedLessonId, records),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['attendance', selectedLessonId] });
-      alert('Attendance saved!');
+      showSuccess('Davomat saqlandi!');
+    },
+    onError: (err: any) => {
+      showError(err?.response?.data?.message ?? 'Xatolik yuz berdi');
     },
   });
 
@@ -76,7 +80,7 @@ export default function AttendancePage() {
 
   return (
     <div>
-      <PageHeader title="Attendance" subtitle="Mark and view lesson attendance" />
+      <PageHeader title="Davomat" subtitle="Dars davomatini belgilash va ko'rish" />
 
       <div className="flex flex-wrap gap-3 mb-6">
         <select
@@ -84,7 +88,7 @@ export default function AttendancePage() {
           onChange={(e) => { setSelectedGroupId(Number(e.target.value)); setSelectedLessonId(0); }}
           className="px-4 py-2.5 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
         >
-          <option value="">Select group...</option>
+          <option value="">Guruhni tanlang...</option>
           {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
         </select>
 
@@ -94,7 +98,7 @@ export default function AttendancePage() {
             onChange={(e) => setSelectedLessonId(Number(e.target.value))}
             className="px-4 py-2.5 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
-            <option value="">Select lesson...</option>
+            <option value="">Darsni tanlang...</option>
             {lessons.map((l) => (
               <option key={l.id} value={l.id}>{l.lessonDate}{l.topic ? ` — ${l.topic}` : ''}</option>
             ))}
@@ -110,10 +114,10 @@ export default function AttendancePage() {
             </span>
             <div className="flex items-center gap-2">
               <button onClick={() => markAll('PRESENT')} className="text-xs px-3 py-1.5 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition">
-                All Present
+                Barchasi keldi
               </button>
               <button onClick={() => markAll('ABSENT')} className="text-xs px-3 py-1.5 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition">
-                All Absent
+                Barchasi kelmadi
               </button>
               <button
                 onClick={handleSave}
@@ -121,7 +125,7 @@ export default function AttendancePage() {
                 className="flex items-center gap-1.5 text-sm px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white rounded-lg transition"
               >
                 <Save size={14} />
-                {saveMutation.isPending ? 'Saving...' : 'Save'}
+                {saveMutation.isPending ? 'Saqlanmoqda...' : 'Saqlash'}
               </button>
             </div>
           </div>
@@ -132,7 +136,7 @@ export default function AttendancePage() {
               Loading...
             </div>
           ) : attendanceRecords.length === 0 ? (
-            <div className="py-12 text-center text-gray-400">No students enrolled in this group</div>
+            <div className="py-12 text-center text-gray-400">Bu guruhda talabalar yo'q</div>
           ) : (
             <div className="divide-y divide-gray-50">
               {attendanceRecords.map((r) => {
@@ -173,7 +177,7 @@ export default function AttendancePage() {
 
       {!selectedLessonId && (
         <div className="bg-white rounded-xl border border-gray-200 py-16 text-center text-gray-400">
-          Select a group and lesson to mark attendance
+          Guruh va darsni tanlang
         </div>
       )}
     </div>

@@ -15,17 +15,16 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 
 const navItems = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'TEACHER', 'RECEPTION'] },
-  { to: '/students', label: 'Students', icon: Users, roles: ['ADMIN', 'TEACHER', 'RECEPTION'] },
-  { to: '/teachers', label: 'Teachers', icon: GraduationCap, roles: ['ADMIN', 'RECEPTION'] },
-  { to: '/courses', label: 'Courses', icon: BookOpen, roles: ['ADMIN', 'RECEPTION'] },
-  { to: '/groups', label: 'Groups', icon: Layers, roles: ['ADMIN', 'TEACHER', 'RECEPTION'] },
-  { to: '/lessons', label: 'Lessons', icon: CalendarCheck, roles: ['ADMIN', 'TEACHER', 'RECEPTION'] },
-  { to: '/exams', label: 'Exams', icon: ClipboardList, roles: ['ADMIN', 'TEACHER', 'RECEPTION'] },
-  { to: '/attendance', label: 'Attendance', icon: FileText, roles: ['ADMIN', 'TEACHER', 'RECEPTION'] },
+  { to: '/', label: 'Bosh Sahifa', icon: LayoutDashboard, roles: ['ADMIN', 'TEACHER', 'RECEPTION'] },
+  { to: '/students', label: 'Talabalar', icon: Users, roles: ['ADMIN', 'TEACHER', 'RECEPTION'] },
+  { to: '/teachers', label: "O'qituvchilar", icon: GraduationCap, roles: ['ADMIN', 'RECEPTION'] },
+  { to: '/courses', label: 'Kurslar', icon: BookOpen, roles: ['ADMIN', 'RECEPTION'] },
+  { to: '/groups', label: 'Guruhlar', icon: Layers, roles: ['ADMIN', 'TEACHER', 'RECEPTION'] },
+  { to: '/lessons', label: 'Darslar', icon: CalendarCheck, roles: ['ADMIN', 'TEACHER', 'RECEPTION'] },
+  { to: '/exams', label: 'Imtihonlar', icon: ClipboardList, roles: ['ADMIN', 'TEACHER', 'RECEPTION'] },
+  { to: '/attendance', label: 'Davomat', icon: FileText, roles: ['ADMIN', 'TEACHER', 'RECEPTION'] },
   { to: '/users', label: 'Foydalanuvchilar', icon: ShieldCheck, roles: ['ADMIN'] },
-  // Student-only items
-  { to: '/student-profile', label: 'Mening profilim', icon: UserCircle, roles: ['STUDENT'] },
+  { to: '/student-profile', label: 'Mening Profilim', icon: UserCircle, roles: ['STUDENT'] },
 ];
 
 export default function Sidebar() {
@@ -43,7 +42,7 @@ export default function Sidebar() {
         <div>
           <p className="text-white font-semibold leading-tight">IELTS Centre</p>
           <p className="text-gray-400 text-xs">
-            {user?.role === 'STUDENT' ? 'Talaba Kabineti' : 'Management System'}
+            {user?.role === 'STUDENT' ? 'Talaba Kabineti' : 'Boshqaruv Tizimi'}
           </p>
         </div>
       </div>
@@ -87,7 +86,7 @@ export default function Sidebar() {
           className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-sm font-medium text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
         >
           <LogOut size={18} />
-          Sign out
+          Chiqish
         </button>
       </div>
     </aside>

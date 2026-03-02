@@ -9,6 +9,7 @@ import type { Teacher, TeacherCreateRequest } from '../../types';
 import PageHeader from '../../components/ui/PageHeader';
 import Modal from '../../components/ui/Modal';
 import Table from '../../components/ui/Table';
+import { showSuccess, showError } from '../../utils/toast';
 
 function TeacherForm({
   initial,
@@ -100,17 +101,17 @@ function ResetPasswordModal({ teacher, onClose }: { teacher: Teacher; onClose: (
     mutationFn: (password: string) => resetTeacherPassword(teacher.teacherId, password),
     onSuccess: () => {
       onClose();
-      alert("Parol muvaffaqiyatli o'zgartirildi!");
+      showSuccess("Parol muvaffaqiyatli o'zgartirildi!");
     },
     onError: (err: any) => {
-      alert(err?.response?.data?.message ?? 'Xatolik yuz berdi');
+      showError(err?.response?.data?.message ?? 'Xatolik yuz berdi');
     },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newPassword.length < 4) return alert('Parol kamida 4 ta belgidan iborat bo\'lishi kerak');
-    if (newPassword !== confirmPassword) return alert('Parollar mos kelmadi');
+    if (newPassword.length < 4) { showError('Parol kamida 4 ta belgidan iborat bo\'lishi kerak'); return; }
+    if (newPassword !== confirmPassword) { showError('Parollar mos kelmadi'); return; }
     mutation.mutate(newPassword);
   };
 
@@ -229,7 +230,7 @@ export default function TeachersPage() {
           )}
           {isAdmin && (
             <button
-              onClick={() => { if (confirm(`Delete teacher "${t.fullName}"?`)) deleteMutation.mutate(t.id); }}
+              onClick={() => { if (window.confirm(`"${t.fullName}" o'qituvchisini o'chirish?`)) deleteMutation.mutate(t.id); }}
               className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
             >
               <Trash2 size={15} />
