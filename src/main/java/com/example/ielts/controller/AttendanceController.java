@@ -3,6 +3,7 @@ package com.example.ielts.controller;
 import com.example.ielts.dto.AttendanceBulkMarkRequest;
 import com.example.ielts.dto.AttendanceMarkRequest;
 import com.example.ielts.dto.AttendanceResponse;
+import com.example.ielts.dto.LowAttendanceDTO;
 import com.example.ielts.service.AttendanceService;
 import com.example.ielts.service.AuditLogService;
 import jakarta.validation.Valid;
@@ -70,5 +71,13 @@ public class AttendanceController {
         req.lessonId = lessonId;
         service.markBulk(req);
         audit.log("ATTENDANCE_BULK_MARK", lessonId);
+    }
+
+    // Low attendance students (ADMIN/RECEPTION)
+    @PreAuthorize("hasAnyRole('ADMIN','RECEPTION')")
+    @GetMapping("/low-attendance")
+    public List<LowAttendanceDTO> lowAttendance(
+            @RequestParam(defaultValue = "75") int threshold) {
+        return service.getLowAttendanceStudents(threshold);
     }
 }

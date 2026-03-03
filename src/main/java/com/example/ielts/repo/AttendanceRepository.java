@@ -107,4 +107,27 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Attendan
                                             @Param("to") LocalDate to,
                                             @Param("statuses") String[] statuses);
 
+    // ===============================
+    // LOW ATTENDANCE: talabalar < threshold%
+    // ===============================
+    @Query(value = """
+        SELECT
+            s.student_id AS studentId,
+            s.full_name  AS fullName,
+            COUNT(a.student_id) AS totalLessons,
+            COALESCE(SUM(CASE WHEN a.status IN ('present', 'late') THEN 1 ELSE 0 END), 0) AS presentCount
+        FROM app.students s
+        JOIN app.enrollments e ON e.student_id = s.student_id AND e.status = 'active'
+        JOIN app.lessons l ON l.group_id = e.group_id AND l.lesson_date <= CURRENT_DATE
+        LEFT JOIN app.attendance a ON a.lesson_id = l.lesson_id AND a.student_id = s.student_id
+        GROUP BY s.student_id, s.full_name
+        HAVING COUNT(a.student_id) >= 3
+           AND (COALESCE(SUM(CASE WHEN a.status IN ('present', 'late') THEN 1 ELSE 0 END), 0) * 100.0
+               / NULLIF(COUNT(a.student_id), 0)) < :threshold
+        ORDER BY (COALESCE(SUM(CASE WHEN a.status IN ('present', 'late') THEN 1 ELSE 0 END), 0) * 100.0
+               / NULLIF(COUNT(a.student_id), 0)) ASC
+        LIMIT 20
+    """, nativeQuery = true)
+    List<Object[]> findLowAttendanceStudents(@Param("threshold") int threshold);
+
 }

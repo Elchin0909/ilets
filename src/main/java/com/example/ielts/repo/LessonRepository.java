@@ -34,5 +34,35 @@ public interface LessonRepository extends JpaRepository<Lesson, UUID> {
     long countLessons(@Param("groupId") UUID groupId,
                       @Param("from") LocalDate from,
                       @Param("to") LocalDate to);
+
+    // Calendar uchun: date range bo'yicha darslar
+    @Query("""
+            select l from Lesson l
+            where l.groupId = :groupId
+              and l.lessonDate >= :from
+              and l.lessonDate <= :to
+            order by l.lessonDate asc
+           """)
+    List<Lesson> findByGroupIdAndDateRange(@Param("groupId") UUID groupId,
+                                           @Param("from") LocalDate from,
+                                           @Param("to") LocalDate to);
+
+    // Bugungi darslar (barcha guruhlar)
+    @Query("""
+            select l from Lesson l
+            where l.lessonDate = :today
+            order by l.groupId asc
+           """)
+    List<Lesson> findByLessonDate(@Param("today") LocalDate today);
+
+    // Bugungi darslar (aniq guruhlar ro'yxati)
+    @Query("""
+            select l from Lesson l
+            where l.lessonDate = :today
+              and l.groupId in :groupIds
+            order by l.groupId asc
+           """)
+    List<Lesson> findTodayByGroupIds(@Param("today") LocalDate today,
+                                     @Param("groupIds") List<UUID> groupIds);
 }
 

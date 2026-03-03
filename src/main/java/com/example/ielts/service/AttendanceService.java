@@ -3,6 +3,7 @@ package com.example.ielts.service;
 import com.example.ielts.dto.AttendanceBulkMarkRequest;
 import com.example.ielts.dto.AttendanceMarkRequest;
 import com.example.ielts.dto.AttendanceResponse;
+import com.example.ielts.dto.LowAttendanceDTO;
 import com.example.ielts.entity.Attendance;
 import com.example.ielts.entity.Lesson;
 import com.example.ielts.repo.AttendanceRepository;
@@ -143,6 +144,20 @@ public class AttendanceService {
 
         if (total == 0L) return 0.0;
         return present * 100.0 / total;
+    }
+
+    // =========================
+    // LOW ATTENDANCE STUDENTS
+    // =========================
+    public List<LowAttendanceDTO> getLowAttendanceStudents(int threshold) {
+        List<Object[]> rows = attendanceRepo.findLowAttendanceStudents(threshold);
+        return rows.stream().map(row -> {
+            UUID studentId = (UUID) row[0];
+            String fullName = (String) row[1];
+            long total = row[2] == null ? 0L : ((Number) row[2]).longValue();
+            long present = row[3] == null ? 0L : ((Number) row[3]).longValue();
+            return new LowAttendanceDTO(studentId, fullName, total, present);
+        }).toList();
     }
 
     // =========================

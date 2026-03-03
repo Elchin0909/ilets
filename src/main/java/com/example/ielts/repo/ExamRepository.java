@@ -40,4 +40,16 @@ public interface ExamRepository extends JpaRepository<Exam, UUID> {
     long countExams(@Param("groupId") UUID groupId,
                     @Param("from") LocalDate from,
                     @Param("to") LocalDate to);
+
+    // Calendar uchun: date range bo'yicha imtihonlar
+    @Query("""
+            select e from Exam e
+            where e.groupId = :groupId
+              and e.examDate >= :from
+              and e.examDate <= :to
+            order by e.examDate asc
+           """)
+    List<Exam> findByGroupIdAndDateRange(@Param("groupId") UUID groupId,
+                                          @Param("from") LocalDate from,
+                                          @Param("to") LocalDate to);
 }

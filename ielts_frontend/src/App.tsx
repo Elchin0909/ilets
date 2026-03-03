@@ -25,6 +25,7 @@ import UsersPage from './pages/users/UsersPage';
 import WritingAssessmentPage from './pages/ai/WritingAssessmentPage';
 import AnalyticsPage from './pages/analytics/AnalyticsPage';
 import PaymentsPage from './pages/payments/PaymentsPage';
+import CalendarPage from './pages/calendar/CalendarPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -62,6 +63,7 @@ export default function App() {
                 <Route path="/courses" element={<CoursesPage />} />
                 <Route path="/groups" element={<GroupsPage />} />
                 <Route path="/groups/:id" element={<GroupDetailPage />} />
+                <Route path="/calendar" element={<CalendarPage />} />
                 <Route path="/lessons" element={<LessonsPage />} />
                 <Route path="/exams" element={<ExamsPage />} />
                 <Route path="/exams/:id" element={<ExamDetailPage />} />

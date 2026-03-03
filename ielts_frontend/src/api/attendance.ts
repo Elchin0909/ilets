@@ -18,3 +18,14 @@ export const getStudentAttendancePercent = (studentId: string | number) =>
 
 export const getGroupAttendancePercent = (groupId: string | number) =>
   api.get(`/attendance/group/${groupId}/percent`).then((r) => r.data);
+
+export interface LowAttendanceStudent {
+  studentId: string;
+  fullName: string;
+  totalLessons: number;
+  presentCount: number;
+  attendancePercent: number;
+}
+
+export const getLowAttendanceStudents = (threshold = 75) =>
+  api.get<LowAttendanceStudent[]>('/attendance/low-attendance', { params: { threshold } }).then((r) => r.data);

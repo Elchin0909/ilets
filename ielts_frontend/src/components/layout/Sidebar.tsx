@@ -6,6 +6,7 @@ import {
   BookOpen,
   Layers,
   CalendarCheck,
+  CalendarDays,
   ClipboardList,
   FileText,
   LogOut,
@@ -23,6 +24,7 @@ const navItems = [
   { to: '/teachers', label: "O'qituvchilar", icon: GraduationCap, roles: ['ADMIN', 'RECEPTION'] },
   { to: '/courses', label: 'Kurslar', icon: BookOpen, roles: ['ADMIN', 'RECEPTION'] },
   { to: '/groups', label: 'Guruhlar', icon: Layers, roles: ['ADMIN', 'TEACHER', 'RECEPTION'] },
+  { to: '/calendar', label: 'Kalendar', icon: CalendarDays, roles: ['ADMIN', 'TEACHER', 'RECEPTION'] },
   { to: '/lessons', label: 'Darslar', icon: CalendarCheck, roles: ['ADMIN', 'TEACHER', 'RECEPTION'] },
   { to: '/exams', label: 'Imtihonlar', icon: ClipboardList, roles: ['ADMIN', 'TEACHER', 'RECEPTION'] },
   { to: '/attendance', label: 'Davomat', icon: FileText, roles: ['ADMIN', 'TEACHER', 'RECEPTION'] },
@@ -56,22 +58,22 @@ export default function Sidebar() {
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
         {visibleItems.map(({ to, label, icon: Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={to === '/'}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-indigo-600 text-white'
-                    : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                }`
-              }
-            >
-              <Icon size={18} />
-              {label}
-            </NavLink>
-          ))}
+          <NavLink
+            key={to}
+            to={to}
+            end={to === '/'}
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                isActive
+                  ? 'bg-indigo-600 text-white'
+                  : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+              }`
+            }
+          >
+            <Icon size={18} />
+            {label}
+          </NavLink>
+        ))}
       </nav>
 
       {/* User info + logout */}
