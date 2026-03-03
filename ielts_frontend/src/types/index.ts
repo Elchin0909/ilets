@@ -100,8 +100,9 @@ export interface GroupCreateRequest {
 
 // Lesson
 export interface Lesson {
-  id: number;
-  groupId: number;
+  id: string;       // maps from lessonId (UUID)
+  lessonId: string; // same UUID, also present in response
+  groupId: string;  // UUID
   lessonDate: string;
   topic?: string;
 }

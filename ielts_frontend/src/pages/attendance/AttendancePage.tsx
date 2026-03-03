@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 import { Save, Check, X, Clock, Users, MessageSquare } from 'lucide-react';
 import { getGroups } from '../../api/groups';
 import { getLessonsByGroup } from '../../api/lessons';
@@ -40,9 +41,12 @@ function StatusBadge({ status }: { status: Status | null }) {
 
 export default function AttendancePage() {
   const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
 
   const [selectedGroupId, setSelectedGroupId] = useState<string>('');
-  const [selectedLessonId, setSelectedLessonId] = useState<string>('');
+  const [selectedLessonId, setSelectedLessonId] = useState<string>(
+    searchParams.get('lessonId') ?? ''
+  );
   // { studentId → { status, comment } }
   const [localData, setLocalData] = useState<Record<string, LocalRecord>>({});
   const [openCommentId, setOpenCommentId] = useState<string | null>(null);

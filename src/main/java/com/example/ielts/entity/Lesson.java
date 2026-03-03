@@ -1,5 +1,6 @@
 package com.example.ielts.entity;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -39,4 +40,8 @@ public class Lesson {
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
+
+    /** Frontend "id" field — lessonId alias */
+    @JsonProperty("id")
+    public UUID getId() { return lessonId; }
 }
