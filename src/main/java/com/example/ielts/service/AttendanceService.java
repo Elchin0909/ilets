@@ -46,11 +46,12 @@ public class AttendanceService {
 
         return rows.stream().map(v -> {
             AttendanceResponse r = new AttendanceResponse();
-            r.lessonId = v.getLessonId();
-            r.studentId = v.getStudentId();
-            r.fullName = v.getFullName();
-            r.status = v.getStatus();
-            r.comment = v.getComment();
+            r.lessonId   = v.getLessonId();
+            r.studentId  = v.getStudentId();
+            r.fullName   = v.getFullName();
+            r.status     = v.getStatus();
+            r.comment    = v.getComment();
+            r.lessonDate = v.getLessonDate();
             return r;
         }).toList();
     }
@@ -61,9 +62,18 @@ public class AttendanceService {
     public List<AttendanceResponse> byStudent(UUID studentId) {
         requireStudent(studentId);
 
-        return attendanceRepo.findByStudentId(studentId)
+        return attendanceRepo.rowsByStudent(studentId)
                 .stream()
-                .map(this::toResponse)
+                .map(v -> {
+                    AttendanceResponse r = new AttendanceResponse();
+                    r.lessonId   = v.getLessonId();
+                    r.studentId  = v.getStudentId();
+                    r.fullName   = v.getFullName();
+                    r.status     = v.getStatus();
+                    r.comment    = v.getComment();
+                    r.lessonDate = v.getLessonDate();
+                    return r;
+                })
                 .toList();
     }
 

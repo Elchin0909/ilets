@@ -5,14 +5,14 @@ import { ArrowLeft, Phone, Mail, Users, ClipboardList, FileText, BrainCircuit, L
 import { getStudent } from '../../api/students';
 import { getEnrollments, getGroups, createEnrollment } from '../../api/groups';
 import { getStudentExamResults } from '../../api/exams';
-import { getAttendanceByStudent } from '../../api/attendance';
+import { getAttendanceByStudent, type AttendanceRow } from '../../api/attendance';
 import { predictBand, type BandPredictionResponse } from '../../api/ai';
 import { getStudentPayments, getStudentTotal, type Payment } from '../../api/payments';
 import Badge from '../../components/ui/Badge';
 import Table from '../../components/ui/Table';
 import Modal from '../../components/ui/Modal';
 import toast from 'react-hot-toast';
-import type { Enrollment, ExamResult, AttendanceRecord } from '../../types';
+import type { Enrollment, ExamResult } from '../../types';
 
 function StatCard({ label, value, icon: Icon, color }: { label: string; value: string | number; icon: React.ElementType; color: string }) {
   return (
@@ -195,9 +195,10 @@ export default function StudentDetailPage() {
 
   const studentEnrollments = allEnrollments.filter(e => String(e.studentId) === String(studentId));
 
-  const presentCount = attendance.filter(a => a.status === 'PRESENT').length;
-  const absentCount = attendance.filter(a => a.status === 'ABSENT').length;
-  const lateCount = attendance.filter(a => a.status === 'LATE').length;
+  // Backend lowercase status: 'present' | 'absent' | 'late'
+  const presentCount = attendance.filter(a => a.status === 'present').length;
+  const absentCount = attendance.filter(a => a.status === 'absent').length;
+  const lateCount = attendance.filter(a => a.status === 'late').length;
   const attendancePercent = attendance.length > 0
     ? Math.round((presentCount / attendance.length) * 100)
     : 0;
@@ -324,14 +325,29 @@ export default function StudentDetailPage() {
               <Table
                 columns={[
                   {
+                    key: 'lessonDate', header: 'Sana',
+                    render: (a: AttendanceRow) => a.lessonDate
+                      ? new Date(a.lessonDate + 'T00:00:00').toLocaleDateString('uz-UZ')
+                      : <span className="text-gray-400">—</span>,
+                  },
+                  {
                     key: 'status', header: 'Holat',
-                    render: (a: AttendanceRecord) => a.status ? (
-                      <Badge label={a.status} variant={a.status === 'PRESENT' ? 'green' : a.status === 'LATE' ? 'yellow' : 'red'} />
+                    render: (a: AttendanceRow) => a.status ? (
+                      <Badge
+                        label={a.status === 'present' ? 'Keldi' : a.status === 'late' ? 'Kech' : 'Kelmadi'}
+                        variant={a.status === 'present' ? 'green' : a.status === 'late' ? 'yellow' : 'red'}
+                      />
                     ) : <span className="text-gray-400">—</span>,
+                  },
+                  {
+                    key: 'comment', header: 'Izoh',
+                    render: (a: AttendanceRow) => a.comment
+                      ? <span className="text-xs text-gray-500">{a.comment}</span>
+                      : <span className="text-gray-300">—</span>,
                   },
                 ]}
                 data={attendance}
-                keyField="studentId"
+                keyField="lessonId"
                 emptyMessage="Davomat yo'q"
               />
             </>

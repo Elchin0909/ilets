@@ -13,4 +13,6 @@ public interface AttendanceRowView {
     String getStatus();
 
     String getComment();
+
+    java.time.LocalDate getLessonDate();
 }

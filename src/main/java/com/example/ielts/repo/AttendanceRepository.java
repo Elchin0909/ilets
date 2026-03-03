@@ -53,18 +53,36 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Attendan
     // ATTENDANCE LIST (STUDENT NAME)
     // ===============================
     @Query(value = """
-        SELECT 
-          a.lesson_id  AS lessonId,
-          a.student_id AS studentId,
-          s.full_name  AS fullName,
-          a.status     AS status,
-          a.comment    AS comment
+        SELECT
+          a.lesson_id    AS lessonId,
+          a.student_id   AS studentId,
+          s.full_name    AS fullName,
+          a.status       AS status,
+          a.comment      AS comment,
+          l.lesson_date  AS lessonDate
         FROM app.attendance a
         JOIN app.students s ON s.student_id = a.student_id
+        JOIN app.lessons  l ON l.lesson_id  = a.lesson_id
         WHERE a.lesson_id = :lessonId
         ORDER BY s.full_name
         """, nativeQuery = true)
     List<AttendanceRowView> rowsByLesson(@Param("lessonId") UUID lessonId);
+
+    @Query(value = """
+        SELECT
+          a.lesson_id    AS lessonId,
+          a.student_id   AS studentId,
+          s.full_name    AS fullName,
+          a.status       AS status,
+          a.comment      AS comment,
+          l.lesson_date  AS lessonDate
+        FROM app.attendance a
+        JOIN app.students s ON s.student_id = a.student_id
+        JOIN app.lessons  l ON l.lesson_id  = a.lesson_id
+        WHERE a.student_id = :studentId
+        ORDER BY l.lesson_date DESC
+        """, nativeQuery = true)
+    List<AttendanceRowView> rowsByStudent(@Param("studentId") UUID studentId);
 
     // ===============================
     // DASHBOARD: GROUP ATTENDANCE %
