@@ -25,7 +25,7 @@ public class TeacherCreateRequest {
     @Size(max = 80)
     public String username;
 
-    @NotBlank
+    // password is required for create, optional for update (blank = keep existing)
     @Size(min = 4, max = 80)
     public String password;
 }

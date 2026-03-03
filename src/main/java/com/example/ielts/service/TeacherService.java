@@ -28,7 +28,11 @@ public class TeacherService {
     }
 
     public TeacherResponse create(TeacherCreateRequest req) {
-        if (userRepo.existsByUsername(req.username)) {
+        // password is required on create
+        if (req.password == null || req.password.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Parol majburiy");
+        }
+        if (req.username != null && !req.username.isBlank() && userRepo.existsByUsername(req.username)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Username already exists");
         }
 
@@ -41,14 +45,17 @@ public class TeacherService {
 
         Teacher saved = repo.save(t);
 
-        User u = new User();
-        u.setUsername(req.username);
-        u.setPasswordHash(encoder.encode(req.password));
-        u.setRole("TEACHER");
-        u.setEnabled(true);
-        u.setActive(true);
-        u.setTeacherId(saved.getTeacherId());
-        userRepo.save(u);
+        // only create user account if username is provided
+        if (req.username != null && !req.username.isBlank()) {
+            User u = new User();
+            u.setUsername(req.username);
+            u.setPasswordHash(encoder.encode(req.password));
+            u.setRole("TEACHER");
+            u.setEnabled(true);
+            u.setActive(true);
+            u.setTeacherId(saved.getTeacherId());
+            userRepo.save(u);
+        }
 
         return toResponse(saved);
     }
@@ -87,7 +94,10 @@ public class TeacherService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Username already exists");
         }
         u.setUsername(req.username);
-        u.setPasswordHash(encoder.encode(req.password));
+        // only update password if a new one is provided
+        if (req.password != null && !req.password.isBlank()) {
+            u.setPasswordHash(encoder.encode(req.password));
+        }
         userRepo.save(u);
 
         return toResponse(saved);

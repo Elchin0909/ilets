@@ -15,7 +15,7 @@ public class User {
     @UuidGenerator
     @Column(name = "user_id", nullable = false, updatable = false)
     private UUID userId;
-    @Column(name = "enabled")
+    @Column(name = "enabled", nullable = false, columnDefinition = "boolean default true")
     private boolean enabled = true;
 
     @Column(name = "username", nullable = false, length = 80)
