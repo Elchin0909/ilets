@@ -27,10 +27,10 @@ import java.util.UUID;
 @Service
 public class AiService {
 
-    @Value("${openai.api.key:}")
+    @Value("${anthropic.api.key:-}")
     private String apiKey;
 
-    @Value("${openai.api.model:gpt-4o-mini}")
+    @Value("${anthropic.api.model:claude-3-5-haiku-20241022}")
     private String model;
 
     private final ExamResultRepository examResultRepo;
@@ -91,7 +91,7 @@ public class AiService {
                 confidence qiymatlari: "yuqori" (ko'p natija bor), "o'rta" (2-3 natija), "past" (1 ta natija)
                 """;
 
-        String raw = callOpenAI(systemPrompt, sb.toString());
+        String raw = callAnthropic(systemPrompt, sb.toString());
         return parseJson(raw, BandPredictionResponse.class);
     }
 
@@ -125,7 +125,7 @@ public class AiService {
                 {"level":"Pre-IELTS","bandRange":"5.0–5.5","taskAchievement":"...","coherence":"...","grammar":"...","vocabulary":"...","recommendations":"..."}
                 """.formatted(taskLabel);
 
-        String raw = callOpenAI(systemPrompt, "Yozma matn:\n\n" + text);
+        String raw = callAnthropic(systemPrompt, "Yozma matn:\n\n" + text);
         WritingAssessResponse result = parseJson(raw, WritingAssessResponse.class);
 
         // WritingLog saqlash
@@ -169,33 +169,34 @@ public class AiService {
                 Agar savol tizimdan tashqarida bo'lsa, IELTS bilan bog'liq maslahat bering.
                 """.formatted(studentsCount, teachersCount, groupsCount);
 
-        return callOpenAI(systemPrompt, message);
+        return callAnthropic(systemPrompt, message);
     }
 
     // ── Private helpers ────────────────────────────────────────────────────────
 
     private void checkApiKey() {
-        if (apiKey == null || apiKey.isBlank()) {
+        if (apiKey == null || apiKey.isBlank() || "-".equals(apiKey)) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
                     "AI xizmati hozircha mavjud emas. Administrator bilan bog'laning.");
         }
     }
 
-    private String callOpenAI(String systemPrompt, String userMessage) {
+    private String callAnthropic(String systemPrompt, String userMessage) {
         try {
             String body = objectMapper.writeValueAsString(Map.of(
                     "model", model,
                     "max_tokens", 1024,
+                    "system", systemPrompt,
                     "messages", List.of(
-                            Map.of("role", "system", "content", systemPrompt),
                             Map.of("role", "user", "content", userMessage)
                     )
             ));
 
             HttpClient client = HttpClient.newHttpClient();
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("https://api.openai.com/v1/chat/completions"))
-                    .header("Authorization", "Bearer " + apiKey)
+                    .uri(URI.create("https://api.anthropic.com/v1/messages"))
+                    .header("x-api-key", apiKey)
+                    .header("anthropic-version", "2023-06-01")
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(body))
                     .build();
@@ -208,7 +209,7 @@ public class AiService {
             }
 
             JsonNode root = objectMapper.readTree(response.body());
-            return root.path("choices").get(0).path("message").path("content").asText();
+            return root.path("content").get(0).path("text").asText();
 
         } catch (ResponseStatusException e) {
             throw e;
@@ -220,7 +221,7 @@ public class AiService {
 
     private <T> T parseJson(String raw, Class<T> clazz) {
         try {
-            // JSON ni matndan ajratib olish (GPT ba'zan ```json ... ``` ichida qaytaradi)
+            // JSON ni matndan ajratib olish (Claude ba'zan ```json ... ``` ichida qaytaradi)
             String cleaned = raw.strip();
             int start = cleaned.indexOf('{');
             int end = cleaned.lastIndexOf('}');
