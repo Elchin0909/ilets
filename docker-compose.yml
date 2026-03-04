@@ -53,8 +53,19 @@ services:
       LOGGING_LEVEL_COM_EXAMPLE_IELTS: INFO
       # AI Integration (Claude / Anthropic)
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      # JVM optimallashtirish (tez ishga tushish, kam xotira)
+      JAVA_TOOL_OPTIONS: >-
+        -Xms96m -Xmx384m
+        -XX:+UseG1GC
+        -XX:MaxGCPauseMillis=200
+        -XX:+UseStringDeduplication
+        -Djava.security.egd=file:/dev/./urandom
     expose:
       - "8081"
+    deploy:
+      resources:
+        limits:
+          memory: 512m
 
   # ── React + nginx Frontend ────────────────────────────────────────────────────
   frontend:

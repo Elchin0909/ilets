@@ -14,6 +14,21 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, UUID> {
 
     List<Enrollment> findByGroupId(UUID groupId);
 
+    /** GROUP enrollments + student name — bitta query */
+    @Query(value = """
+        SELECT e.enrollment_id   AS enrollmentId,
+               e.group_id        AS groupId,
+               e.student_id      AS studentId,
+               s.full_name       AS studentName,
+               e.enrolled_at     AS enrolledAt,
+               e.status          AS status
+        FROM app.enrollments e
+        JOIN app.students s ON s.student_id = e.student_id
+        WHERE e.group_id = :groupId
+        ORDER BY s.full_name
+    """, nativeQuery = true)
+    List<Object[]> findByGroupIdWithStudentName(@Param("groupId") UUID groupId);
+
     List<Enrollment> findByStudentId(UUID studentId);
 
     List<Enrollment> findByGroupIdAndStatus(UUID groupId, String status);

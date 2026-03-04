@@ -7,6 +7,7 @@ public class EnrollmentResponse {
     public UUID enrollmentId;
     public UUID groupId;
     public UUID studentId;
+    public String studentName;   // student fullName
     public LocalDateTime enrolledAt;
     public String status;
 }
