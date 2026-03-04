@@ -1,14 +1,19 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { ArrowLeft, Phone, Mail, Layers, Users, KeyRound } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { ArrowLeft, Phone, Mail, Layers, Users, KeyRound, Camera, Loader2 } from 'lucide-react';
 import { getTeacher } from '../../api/teachers';
+import { updateTeacherAvatar } from '../../api/teachers';
 import { getGroups, getGroupEnrollments } from '../../api/groups';
 import { resetTeacherPassword, changeMyPassword } from '../../api/auth';
+import { uploadAvatar } from '../../api/upload';
 import { useAuth } from '../../contexts/AuthContext';
 import type { Group } from '../../types';
 import Modal from '../../components/ui/Modal';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { showSuccess, showError } from '../../utils/toast';
+import toast from 'react-hot-toast';
+
+const BASE_URL = import.meta.env.VITE_API_BASE_URL?.replace('/api', '') ?? 'http://localhost:8080';
 
 function GroupStudentsPanel({ groupId, groupName }: { groupId: string; groupName: string }) {
   const { data: enrollments = [], isLoading } = useQuery({
@@ -42,9 +47,9 @@ export default function TeacherDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const teacherId = id ?? '';
 
-  // Can see reset button if: admin OR the logged-in teacher is viewing their own profile
   const isSelf = user?.teacherId === teacherId;
   const isAdmin = user?.role === 'ADMIN';
   const canResetPassword = isAdmin || isSelf;
@@ -53,6 +58,8 @@ export default function TeacherDetailPage() {
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: teacher, isLoading } = useQuery({
     queryKey: ['teacher', teacherId],
@@ -66,8 +73,31 @@ export default function TeacherDetailPage() {
 
   const teacherGroups = allGroups.filter(g => g.teacherId === teacherId);
 
+  const avatarMutation = useMutation({
+    mutationFn: ({ url }: { url: string }) => updateTeacherAvatar(teacherId, url),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['teacher', teacherId] });
+      toast.success("Rasm yangilandi!");
+    },
+    onError: () => toast.error("Rasmni saqlashda xatolik"),
+  });
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const url = await uploadAvatar(file);
+      await avatarMutation.mutateAsync({ url });
+    } catch {
+      toast.error("Rasmni yuklashda xatolik");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   const resetPasswordMutation = useMutation({
-    // Admin uses the teacher reset endpoint; teacher uses their own change-password endpoint
     mutationFn: (password: string) =>
       isAdmin ? resetTeacherPassword(teacherId, password) : changeMyPassword(password),
     onSuccess: () => {
@@ -83,7 +113,7 @@ export default function TeacherDetailPage() {
 
   const handleResetPassword = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newPassword.length < 4) { showError('Parol kamida 4 ta belgidan iborat bo\'lishi kerak'); return; }
+    if (newPassword.length < 4) { showError("Parol kamida 4 ta belgidan iborat bo'lishi kerak"); return; }
     if (newPassword !== confirmPassword) { showError('Parollar mos kelmadi'); return; }
     resetPasswordMutation.mutate(newPassword);
   };
@@ -97,6 +127,12 @@ export default function TeacherDetailPage() {
     );
   }
 
+  const avatarSrc = teacher?.avatarUrl
+    ? (teacher.avatarUrl.startsWith('http') ? teacher.avatarUrl : `${BASE_URL}${teacher.avatarUrl}`)
+    : null;
+
+  const canEditAvatar = isAdmin || isSelf;
+
   return (
     <div>
       <button onClick={() => navigate('/teachers')} className="flex items-center gap-2 text-gray-500 hover:text-gray-800 mb-5 text-sm transition">
@@ -105,8 +141,31 @@ export default function TeacherDetailPage() {
 
       {/* Profile card */}
       <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6 flex items-center gap-5">
-        <div className="w-16 h-16 bg-purple-100 rounded-2xl flex items-center justify-center text-2xl font-bold text-purple-600">
-          {teacher?.fullName?.charAt(0)}
+        <div className="relative flex-shrink-0">
+          {avatarSrc ? (
+            <img
+              src={avatarSrc}
+              alt={teacher?.fullName}
+              className="w-16 h-16 rounded-2xl object-cover"
+            />
+          ) : (
+            <div className="w-16 h-16 bg-purple-100 rounded-2xl flex items-center justify-center text-2xl font-bold text-purple-600">
+              {teacher?.fullName?.charAt(0)}
+            </div>
+          )}
+          {canEditAvatar && (
+            <>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="absolute -bottom-1 -right-1 w-6 h-6 bg-purple-600 hover:bg-purple-700 rounded-full flex items-center justify-center shadow-sm transition disabled:opacity-50"
+                title="Rasmni o'zgartirish"
+              >
+                {uploading ? <Loader2 size={11} className="text-white animate-spin" /> : <Camera size={11} className="text-white" />}
+              </button>
+              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+            </>
+          )}
         </div>
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-gray-900">{teacher?.fullName}</h1>
@@ -207,7 +266,7 @@ export default function TeacherDetailPage() {
         <form onSubmit={handleResetPassword} className="space-y-4">
           <p className="text-sm text-gray-500">
             {isSelf && !isAdmin
-              ? 'O\'z parolingizni yangilang'
+              ? "O'z parolingizni yangilang"
               : <><span className="font-medium text-gray-700">{teacher?.fullName}</span> uchun yangi parol o'rnatilmoqda</>
             }
             {teacher?.username && <span className="text-gray-400"> (@{teacher.username})</span>}
@@ -221,7 +280,7 @@ export default function TeacherDetailPage() {
               onChange={(e) => setNewPassword(e.target.value)}
               minLength={4}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="Kamida 6 ta belgi"
+              placeholder="Kamida 4 ta belgi"
             />
           </div>
           <div>
@@ -244,7 +303,7 @@ export default function TeacherDetailPage() {
               disabled={resetPasswordMutation.isPending}
               className="bg-orange-600 hover:bg-orange-700 disabled:bg-orange-400 text-white font-medium py-2 px-5 rounded-lg transition text-sm"
             >
-              {resetPasswordMutation.isPending ? 'Saqlanmoqda...' : 'Parolni o\'zgartir'}
+              {resetPasswordMutation.isPending ? 'Saqlanmoqda...' : "Parolni o'zgartir"}
             </button>
           </div>
         </form>

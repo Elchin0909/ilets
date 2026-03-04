@@ -1,10 +1,19 @@
 import { useAuth } from '../../contexts/AuthContext';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getStudent } from '../../api/students';
+import { updateStudentAvatar } from '../../api/students';
 import { getEnrollmentsByStudent } from '../../api/groups';
 import { getStudentAttendancePercent } from '../../api/attendance';
 import { getStudentExamResults } from '../../api/exams';
-import { BookOpen, TrendingUp, ClipboardList, Phone, Mail, Calendar } from 'lucide-react';
+import { getActiveSession } from '../../api/quiz';
+import { getLessonsByGroup } from '../../api/lessons';
+import { uploadAvatar } from '../../api/upload';
+import { BookOpen, TrendingUp, ClipboardList, Phone, Mail, Calendar, PlayCircle, FileText, Camera, Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useState, useRef } from 'react';
+import toast from 'react-hot-toast';
+
+const BASE_URL = import.meta.env.VITE_API_BASE_URL?.replace('/api', '') ?? 'http://localhost:8080';
 
 function StatCard({ icon: Icon, value, label, color }: { icon: React.ElementType; value: string | number; label: string; color: string }) {
   return (
@@ -28,7 +37,11 @@ function ScoreBadge({ score }: { score?: number | null }) {
 
 export default function StudentProfilePage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const studentId = user?.studentId ?? '';
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: student, isLoading: loadingStudent } = useQuery({
     queryKey: ['student', studentId],
@@ -54,16 +67,111 @@ export default function StudentProfilePage() {
     enabled: !!studentId,
   });
 
+  const { data: activeSession } = useQuery({
+    queryKey: ['activeQuizSession', studentId],
+    queryFn: getActiveSession,
+    enabled: !!studentId,
+    refetchInterval: 30000,
+  });
+
+  // Fetch lessons for first active group to show homework
+  const firstActiveGroupId = enrollments.find(e => e.status === 'active' || e.status === 'ACTIVE')?.groupId ?? null;
+  const { data: groupLessons = [] } = useQuery({
+    queryKey: ['lessons', firstActiveGroupId],
+    queryFn: () => getLessonsByGroup(firstActiveGroupId!),
+    enabled: !!firstActiveGroupId,
+  });
+  const homeworkLessons = groupLessons.filter((l: any) => l.homework && l.homework.trim() !== '').slice(-5).reverse();
+
+  const avatarMutation = useMutation({
+    mutationFn: ({ url }: { url: string }) => updateStudentAvatar(studentId, url),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['student', studentId] });
+      toast.success('Rasm yangilandi!');
+    },
+    onError: () => toast.error('Rasmni saqlashda xatolik'),
+  });
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const url = await uploadAvatar(file);
+      await avatarMutation.mutateAsync({ url });
+    } catch {
+      toast.error('Rasmni yuklashda xatolik');
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   const displayName = student?.fullName ?? user?.username ?? '?';
   const attendancePct = attendancePercent != null ? Math.round(Number(attendancePercent)) : null;
 
+  const avatarSrc = student?.avatarUrl
+    ? (student.avatarUrl.startsWith('http') ? student.avatarUrl : `${BASE_URL}${student.avatarUrl}`)
+    : null;
+
   return (
     <div className="max-w-2xl mx-auto">
+      {/* Active Exam Alert */}
+      {activeSession && !activeSession.alreadySubmitted && (
+        <div className="bg-red-50 border-2 border-red-400 rounded-2xl p-5 mb-5 flex items-center justify-between gap-4 animate-pulse-once">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
+              <PlayCircle size={22} className="text-red-500" />
+            </div>
+            <div>
+              <p className="font-bold text-red-700 text-sm">🔴 Faol Imtihon!</p>
+              <p className="text-red-600 text-xs mt-0.5">{activeSession.testTitle} — {activeSession.questions?.length ?? '?'} savol</p>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate(`/quiz/take/${activeSession.sessionId}`)}
+            className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white font-semibold px-4 py-2 rounded-xl text-sm transition whitespace-nowrap"
+          >
+            <PlayCircle size={16} /> Imtihonni Boshlash
+          </button>
+        </div>
+      )}
+      {activeSession && activeSession.alreadySubmitted && (
+        <div className="bg-green-50 border border-green-300 rounded-2xl p-4 mb-5 flex items-center gap-3">
+          <div className="w-8 h-8 bg-green-100 rounded-xl flex items-center justify-center">
+            <ClipboardList size={16} className="text-green-600" />
+          </div>
+          <div>
+            <p className="font-semibold text-green-700 text-sm">Imtihon topshirildi ✓</p>
+            <p className="text-green-600 text-xs">{activeSession.testTitle}</p>
+          </div>
+        </div>
+      )}
+
       {/* Profile header */}
       <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-8 text-white mb-6">
         <div className="flex items-center gap-5">
-          <div className="w-20 h-20 bg-white/20 rounded-2xl flex items-center justify-center text-3xl font-bold flex-shrink-0">
-            {displayName.charAt(0).toUpperCase()}
+          <div className="relative flex-shrink-0">
+            {avatarSrc ? (
+              <img
+                src={avatarSrc}
+                alt={displayName}
+                className="w-20 h-20 rounded-2xl object-cover"
+              />
+            ) : (
+              <div className="w-20 h-20 bg-white/20 rounded-2xl flex items-center justify-center text-3xl font-bold">
+                {displayName.charAt(0).toUpperCase()}
+              </div>
+            )}
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="absolute -bottom-1 -right-1 w-7 h-7 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-md transition disabled:opacity-50"
+              title="Rasmni o'zgartirish"
+            >
+              {uploading ? <Loader2 size={13} className="text-indigo-600 animate-spin" /> : <Camera size={13} className="text-indigo-600" />}
+            </button>
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
           </div>
           <div>
             <h1 className="text-2xl font-bold">
@@ -139,17 +247,47 @@ export default function StudentProfilePage() {
                   </div>
                 </div>
                 <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                  e.status === 'active' ? 'bg-green-100 text-green-700' :
-                  e.status === 'completed' ? 'bg-blue-100 text-blue-700' :
+                  e.status === 'active' || e.status === 'ACTIVE' ? 'bg-green-100 text-green-700' :
+                  e.status === 'completed' || e.status === 'COMPLETED' ? 'bg-blue-100 text-blue-700' :
                   'bg-gray-100 text-gray-500'
                 }`}>
-                  {e.status === 'active' ? 'Faol' : e.status === 'completed' ? 'Tugallangan' : e.status}
+                  {(e.status === 'active' || e.status === 'ACTIVE') ? 'Faol' : (e.status === 'completed' || e.status === 'COMPLETED') ? 'Tugallangan' : e.status}
                 </span>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {/* Homework section */}
+      {homeworkLessons.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 mb-5">
+          <div className="px-5 py-4 border-b border-gray-100">
+            <h2 className="font-semibold text-gray-800 flex items-center gap-2">
+              <FileText size={16} className="text-orange-500" /> Uy Vazifalari
+            </h2>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {homeworkLessons.map((l: any) => (
+              <div key={l.id ?? l.lessonId} className="px-5 py-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-orange-50 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <FileText size={14} className="text-orange-500" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs text-gray-400 mb-1 flex items-center gap-1">
+                      <Calendar size={10} />
+                      {l.lessonDate ? new Date(l.lessonDate + 'T00:00:00').toLocaleDateString('uz-UZ') : ''} 
+                      {l.topic ? ` — ${l.topic}` : ''}
+                    </p>
+                    <p className="text-sm text-gray-800 leading-relaxed">{l.homework}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Exam results */}
       <div className="bg-white rounded-xl border border-gray-200 mb-5">

@@ -24,3 +24,6 @@ export const updateStudent = (id: string, data: Partial<StudentCreateRequest>) =
 
 export const deleteStudent = (id: string) =>
   api.delete(`/students/${id}`);
+
+export const updateStudentAvatar = (id: string, avatarUrl: string) =>
+  api.patch<any>(`/students/${id}/avatar`, { avatarUrl }).then((r) => r.data);

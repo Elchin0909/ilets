@@ -108,6 +108,12 @@ public class TeacherService {
         userRepo.findByTeacherId(id).ifPresent(userRepo::delete);
     }
 
+    public TeacherResponse updateAvatar(UUID id, String avatarUrl) {
+        Teacher t = repo.findById(id).orElseThrow();
+        t.setAvatarUrl(avatarUrl);
+        return toResponse(repo.save(t));
+    }
+
     private TeacherResponse toResponse(Teacher t) {
         TeacherResponse r = new TeacherResponse();
         r.teacherId = t.getTeacherId();
@@ -117,6 +123,7 @@ public class TeacherService {
         r.birthDate = t.getBirthDate();
         r.createdAt = t.getCreatedAt();
         r.username = t.getLoginUsername();
+        r.avatarUrl = t.getAvatarUrl();
         return r;
     }
 }

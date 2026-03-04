@@ -6,7 +6,6 @@ import com.example.ielts.entity.Student;
 import com.example.ielts.repo.StudentRepository;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -55,6 +54,12 @@ public class StudentService {
         repo.deleteById(id);
     }
 
+    public StudentResponse updateAvatar(UUID id, String avatarUrl) {
+        Student s = repo.findById(id).orElseThrow();
+        s.setAvatarUrl(avatarUrl);
+        return toResponse(repo.save(s));
+    }
+
     private StudentResponse toResponse(Student s) {
         StudentResponse r = new StudentResponse();
         r.studentId = s.getStudentId();
@@ -63,6 +68,7 @@ public class StudentService {
         r.phone = s.getPhone();
         r.birthDate = s.getBirthDate();
         r.createdAt = s.getCreatedAt();
+        r.avatarUrl = s.getAvatarUrl();
         return r;
     }
 }

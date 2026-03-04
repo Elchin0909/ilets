@@ -34,6 +34,7 @@ export interface Student {
   fullName: string;
   phone: string;
   email?: string;
+  avatarUrl?: string;
   createdAt?: string;
 }
 
@@ -51,6 +52,7 @@ export interface Teacher {
   phone: string;
   email?: string;
   username?: string;
+  avatarUrl?: string;
 }
 
 export interface TeacherCreateRequest {
@@ -105,12 +107,14 @@ export interface Lesson {
   groupId: string;  // UUID
   lessonDate: string;
   topic?: string;
+  homework?: string;
 }
 
 export interface LessonCreateRequest {
   groupId: string | number;
   lessonDate: string;
   topic?: string;
+  homework?: string;
 }
 
 // Exam

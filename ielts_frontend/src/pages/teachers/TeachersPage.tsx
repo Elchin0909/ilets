@@ -205,14 +205,13 @@ export default function TeachersPage() {
   );
 
   const columns = [
-    { key: 'id', header: '#', render: (t: Teacher) => <span className="text-gray-400 text-xs">{t.id.slice(0, 8)}…</span> },
-    { key: 'fullName', header: 'Full Name' },
-    { key: 'phone', header: 'Phone' },
-    { key: 'email', header: 'Email', render: (t: Teacher) => t.email || <span className="text-gray-400">—</span> },
-    { key: 'username', header: 'Username', render: (t: Teacher) => t.username || <span className="text-gray-400">—</span> },
+    { key: 'fullName', header: "To'liq ism" },
+    { key: 'phone', header: 'Telefon' },
+    { key: 'email', header: 'Email', render: (t: Teacher) => t.email || <span className="text-gray-300">—</span> },
+    { key: 'username', header: 'Username', render: (t: Teacher) => t.username || <span className="text-gray-300">—</span> },
     {
       key: 'actions',
-      header: 'Actions',
+      header: '',
       render: (t: Teacher) => (
         <div className="flex items-center gap-2">
           <button onClick={() => navigate(`/teachers/${t.id}`)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition" title="Ko'rish">

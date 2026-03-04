@@ -23,6 +23,9 @@ import ExamDetailPage from './pages/exams/ExamDetailPage';
 import AttendancePage from './pages/attendance/AttendancePage';
 import UsersPage from './pages/users/UsersPage';
 import WritingAssessmentPage from './pages/ai/WritingAssessmentPage';
+import TestBankPage from './pages/quiz/TestBankPage';
+import CreateTestPage from './pages/quiz/CreateTestPage';
+import TakeQuizPage from './pages/quiz/TakeQuizPage';
 import AnalyticsPage from './pages/analytics/AnalyticsPage';
 import PaymentsPage from './pages/payments/PaymentsPage';
 import CalendarPage from './pages/calendar/CalendarPage';
@@ -73,6 +76,9 @@ export default function App() {
                 <Route path="/analytics" element={<AnalyticsPage />} />
                 <Route path="/payments" element={<PaymentsPage />} />
                 <Route path="/student-profile" element={<StudentProfilePage />} />
+                <Route path="/quiz/tests" element={<TestBankPage />} />
+                <Route path="/quiz/tests/create" element={<CreateTestPage />} />
+                <Route path="/quiz/take/:sessionId" element={<TakeQuizPage />} />
               </Route>
             </Route>
 

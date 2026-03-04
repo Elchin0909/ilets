@@ -11,4 +11,5 @@ public class StudentResponse {
     public String phone;
     public LocalDate birthDate;
     public LocalDateTime createdAt;
+    public String avatarUrl;
 }

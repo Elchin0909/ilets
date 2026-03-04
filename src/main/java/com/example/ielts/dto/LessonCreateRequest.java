@@ -15,4 +15,5 @@ public class LessonCreateRequest {
 
     private String topic;
     private String notes;
+    private String homework;
 }

@@ -37,6 +37,9 @@ public class Lesson {
     @Column(name = "notes")
     private String notes;
 
+    @Column(name = "homework", length = 1000)
+    private String homework;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

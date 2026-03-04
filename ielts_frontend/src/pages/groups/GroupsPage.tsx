@@ -126,15 +126,14 @@ export default function GroupsPage() {
   });
 
   const columns = [
-    { key: 'id', header: '#', render: (g: Group) => <span className="text-gray-400">{g.id}</span> },
-    { key: 'name', header: 'Name' },
-    { key: 'courseName', header: 'Course', render: (g: Group) => g.courseName || <span className="text-gray-400">ID: {g.courseId}</span> },
-    { key: 'teacherName', header: 'Teacher', render: (g: Group) => g.teacherName || <span className="text-gray-400">ID: {g.teacherId}</span> },
-    { key: 'startDate', header: 'Start', render: (g: Group) => g.startDate || <span className="text-gray-400">—</span> },
-    { key: 'endDate', header: 'End', render: (g: Group) => g.endDate || <span className="text-gray-400">—</span> },
+    { key: 'name', header: 'Guruh nomi' },
+    { key: 'courseName', header: 'Kurs', render: (g: Group) => g.courseName || <span className="text-gray-300">—</span> },
+    { key: 'teacherName', header: "O'qituvchi", render: (g: Group) => g.teacherName || <span className="text-gray-300">—</span> },
+    { key: 'startDate', header: 'Boshlanish', render: (g: Group) => g.startDate || <span className="text-gray-300">—</span> },
+    { key: 'endDate', header: 'Tugash', render: (g: Group) => g.endDate || <span className="text-gray-300">—</span> },
     {
       key: 'actions',
-      header: 'Actions',
+      header: '',
       render: (g: Group) => (
         <div className="flex items-center gap-2">
           <button onClick={() => navigate(`/groups/${g.id}`)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition" title="View Details">

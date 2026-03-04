@@ -1,18 +1,21 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Phone, Mail, Users, ClipboardList, FileText, BrainCircuit, Loader2, UserPlus, CreditCard, TrendingUp } from 'lucide-react';
-import { getStudent } from '../../api/students';
+import { ArrowLeft, Phone, Mail, Users, ClipboardList, FileText, BrainCircuit, Loader2, UserPlus, CreditCard, TrendingUp, Camera } from 'lucide-react';
+import { getStudent, updateStudentAvatar } from '../../api/students';
 import { getEnrollments, getGroups, createEnrollment } from '../../api/groups';
 import { getStudentExamResults } from '../../api/exams';
 import { getAttendanceByStudent, type AttendanceRow } from '../../api/attendance';
 import { predictBand, type BandPredictionResponse } from '../../api/ai';
 import { getStudentPayments, getStudentTotal, type Payment } from '../../api/payments';
+import { uploadAvatar } from '../../api/upload';
 import Badge from '../../components/ui/Badge';
 import Table from '../../components/ui/Table';
 import Modal from '../../components/ui/Modal';
 import toast from 'react-hot-toast';
 import type { Enrollment, ExamResult } from '../../types';
+
+const BASE_URL = import.meta.env.VITE_API_BASE_URL?.replace('/api', '') ?? 'http://localhost:8080';
 
 function StatCard({ label, value, icon: Icon, color }: { label: string; value: string | number; icon: React.ElementType; color: string }) {
   return (
@@ -158,8 +161,11 @@ function BandPredictionCard({ studentId }: { studentId: string }) {
 export default function StudentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const studentId = id ?? '';
   const [showEnroll, setShowEnroll] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: student, isLoading: loadingStudent } = useQuery({
     queryKey: ['student', studentId],
@@ -193,9 +199,32 @@ export default function StudentDetailPage() {
     enabled: !!studentId,
   });
 
+  const avatarMutation = useMutation({
+    mutationFn: ({ url }: { url: string }) => updateStudentAvatar(studentId, url),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['student', studentId] });
+      toast.success("Rasm yangilandi!");
+    },
+    onError: () => toast.error("Rasmni saqlashda xatolik"),
+  });
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const url = await uploadAvatar(file);
+      await avatarMutation.mutateAsync({ url });
+    } catch {
+      toast.error("Rasmni yuklashda xatolik");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   const studentEnrollments = allEnrollments.filter(e => String(e.studentId) === String(studentId));
 
-  // Backend lowercase status: 'present' | 'absent' | 'late'
   const presentCount = attendance.filter(a => a.status === 'present').length;
   const absentCount = attendance.filter(a => a.status === 'absent').length;
   const lateCount = attendance.filter(a => a.status === 'late').length;
@@ -203,7 +232,6 @@ export default function StudentDetailPage() {
     ? Math.round((presentCount / attendance.length) * 100)
     : 0;
 
-  // avgScore calculated for chart use
   const _avgScore = examResults.length > 0 && examResults.some(r => r.score != null)
     ? (examResults.filter(r => r.score != null).reduce((sum, r) => sum + (r.score ?? 0), 0) / examResults.filter(r => r.score != null).length).toFixed(1)
     : '—';
@@ -218,6 +246,10 @@ export default function StudentDetailPage() {
     );
   }
 
+  const avatarSrc = student?.avatarUrl
+    ? (student.avatarUrl.startsWith('http') ? student.avatarUrl : `${BASE_URL}${student.avatarUrl}`)
+    : null;
+
   return (
     <div>
       <button onClick={() => navigate('/students')} className="flex items-center gap-2 text-gray-500 hover:text-gray-800 mb-5 text-sm transition">
@@ -226,8 +258,27 @@ export default function StudentDetailPage() {
 
       {/* Profile card */}
       <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6 flex items-center gap-5">
-        <div className="w-16 h-16 bg-indigo-100 rounded-2xl flex items-center justify-center text-2xl font-bold text-indigo-600">
-          {student?.fullName?.charAt(0)}
+        <div className="relative flex-shrink-0">
+          {avatarSrc ? (
+            <img
+              src={avatarSrc}
+              alt={student?.fullName}
+              className="w-16 h-16 rounded-2xl object-cover"
+            />
+          ) : (
+            <div className="w-16 h-16 bg-indigo-100 rounded-2xl flex items-center justify-center text-2xl font-bold text-indigo-600">
+              {student?.fullName?.charAt(0)}
+            </div>
+          )}
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="absolute -bottom-1 -right-1 w-6 h-6 bg-indigo-600 hover:bg-indigo-700 rounded-full flex items-center justify-center shadow-sm transition disabled:opacity-50"
+            title="Rasmni o'zgartirish"
+          >
+            {uploading ? <Loader2 size={11} className="text-white animate-spin" /> : <Camera size={11} className="text-white" />}
+          </button>
+          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
         </div>
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-gray-900">{student?.fullName}</h1>
@@ -305,7 +356,6 @@ export default function StudentDetailPage() {
             <p className="text-center text-gray-400 py-8">Davomat ma'lumoti yo'q</p>
           ) : (
             <>
-              {/* Progress bar */}
               <div className="mb-4">
                 <div className="flex justify-between text-sm mb-1">
                   <span className="text-gray-600">Umumiy davomat</span>

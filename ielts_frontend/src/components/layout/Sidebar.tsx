@@ -27,6 +27,7 @@ const navItems = [
   { to: '/calendar', label: 'Kalendar', icon: CalendarDays, roles: ['ADMIN', 'TEACHER', 'RECEPTION'] },
   { to: '/lessons', label: 'Darslar', icon: CalendarCheck, roles: ['ADMIN', 'TEACHER', 'RECEPTION'] },
   { to: '/exams', label: 'Imtihonlar', icon: ClipboardList, roles: ['ADMIN', 'TEACHER', 'RECEPTION'] },
+  { to: '/quiz/tests', label: 'Test Banki', icon: ClipboardList, roles: ['ADMIN', 'TEACHER'] },
   { to: '/attendance', label: 'Davomat', icon: FileText, roles: ['ADMIN', 'TEACHER', 'RECEPTION'] },
   { to: '/ai/writing', label: 'AI Writing', icon: PenLine, roles: ['ADMIN', 'TEACHER', 'RECEPTION'] },
   { to: '/payments', label: "To'lovlar", icon: CreditCard, roles: ['ADMIN', 'RECEPTION'] },

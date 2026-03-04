@@ -44,6 +44,7 @@ public class LessonService {
         l.setGroupId(req.getGroupId());
         l.setLessonDate(req.getLessonDate());
         l.setTopic(req.getTopic());
+        l.setHomework(req.getHomework());
 
         try {
             return lessonRepo.save(l);
@@ -66,6 +67,7 @@ public class LessonService {
 
         if (req.getLessonDate() != null) l.setLessonDate(req.getLessonDate());
         if (req.getTopic() != null) l.setTopic(req.getTopic());
+        l.setHomework(req.getHomework()); // allow clearing homework (null ok)
 
         return lessonRepo.save(l);
     }

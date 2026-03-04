@@ -8,6 +8,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -40,6 +41,13 @@ public class StudentController {
     @PutMapping("/{id}")
     public StudentResponse update(@PathVariable UUID id, @RequestBody @Valid StudentCreateRequest req) {
         return service.update(id, req);
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    @PatchMapping("/{id}/avatar")
+    public StudentResponse updateAvatar(@PathVariable UUID id,
+                                        @RequestBody Map<String, String> body) {
+        return service.updateAvatar(id, body.get("avatarUrl"));
     }
 
     @PreAuthorize("hasRole('ADMIN')")

@@ -35,6 +35,9 @@ public class Teacher {
     @Column(name = "login_username", length = 80)
     private String loginUsername;
 
+    @Column(name = "avatar_url", length = 500)
+    private String avatarUrl;
+
     // getters / setters
 
     public UUID getTeacherId() { return teacherId; }
@@ -56,4 +59,7 @@ public class Teacher {
 
     public String getLoginUsername() { return loginUsername; }
     public void setLoginUsername(String loginUsername) { this.loginUsername = loginUsername; }
+
+    public String getAvatarUrl() { return avatarUrl; }
+    public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
 }
