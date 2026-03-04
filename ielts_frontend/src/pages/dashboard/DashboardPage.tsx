@@ -117,7 +117,7 @@ function AiChatWidget() {
             </div>
             <div>
               <p className="text-white font-semibold text-sm">IELTS AI Yordamchi</p>
-              <p className="text-indigo-200 text-xs">Powered by OpenAI</p>
+              <p className="text-indigo-200 text-xs">Powered by Claude</p>
             </div>
             <button onClick={() => setOpen(false)} className="ml-auto text-indigo-200 hover:text-white transition">
               <X size={18} />
