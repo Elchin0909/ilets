@@ -199,14 +199,25 @@ export default function GroupDetailPage() {
       </button>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">{group?.name ?? 'Guruh Tafsilotlari'}</h1>
-        {group && (
-          <div className="flex flex-wrap gap-4 mt-2 text-sm text-gray-500">
-            {group.startDate && <span>Boshlanish: {group.startDate}</span>}
-            {group.endDate && <span>Tugash: {group.endDate}</span>}
-            {group.schedule && <span>Jadval: {group.schedule}</span>}
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">{group?.name ?? 'Guruh Tafsilotlari'}</h1>
+            {group && (
+              <div className="flex flex-wrap gap-4 mt-2 text-sm text-gray-500">
+                {group.startDate && <span>Boshlanish: {group.startDate}</span>}
+                {group.endDate && <span>Tugash: {group.endDate}</span>}
+                {group.schedule && <span>Jadval: {group.schedule}</span>}
+              </div>
+            )}
           </div>
-        )}
+          <button
+            onClick={() => navigate(`/chat/group/${groupId}`)}
+            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-5 rounded-xl transition text-sm whitespace-nowrap shadow-sm"
+          >
+            <MessageSquare size={16} />
+            💬 Guruh Chati
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -337,13 +348,6 @@ export default function GroupDetailPage() {
                       Online Test Boshlash
                     </button>
                   )}
-                  <button
-                    onClick={() => navigate(`/chat/group/${groupId}`)}
-                    className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition text-sm"
-                  >
-                    <MessageSquare size={15} />
-                    Guruh Chati
-                  </button>
                 </div>
                 <button
                   onClick={() => { setExamForm({ groupId: groupId as any, examDate: '', title: '', maxScore: 9 }); setShowAddExam(true); }}
