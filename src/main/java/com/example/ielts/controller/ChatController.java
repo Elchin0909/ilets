@@ -118,7 +118,9 @@ public class ChatController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Fayl 50 MB dan oshmasligi kerak");
         }
         String ct = file.getContentType() != null ? file.getContentType() : "application/octet-stream";
-        if (!ALLOWED_TYPES.contains(ct)) {
+        // Strip codec params: "audio/webm;codecs=opus" → "audio/webm"
+        String ctBase = ct.contains(";") ? ct.substring(0, ct.indexOf(';')).trim() : ct;
+        if (!ALLOWED_TYPES.contains(ctBase)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Bu turdagi fayl qabul qilinmaydi: " + ct);
         }
