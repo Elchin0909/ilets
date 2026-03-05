@@ -15,4 +15,13 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, UUID> 
 
     @Query(value = "SELECT * FROM app.chat_messages WHERE group_id = :groupId ORDER BY sent_at DESC LIMIT :limit", nativeQuery = true)
     List<ChatMessage> findLastNByGroupId(@Param("groupId") UUID groupId, @Param("limit") int limit);
+
+    /** Har bir group uchun oxirgi xabar (PostgreSQL DISTINCT ON) */
+    @Query(value = """
+        SELECT DISTINCT ON (group_id) *
+        FROM app.chat_messages
+        WHERE group_id IN (:groupIds)
+        ORDER BY group_id, sent_at DESC
+    """, nativeQuery = true)
+    List<ChatMessage> findLastMessagePerGroup(@Param("groupIds") List<UUID> groupIds);
 }

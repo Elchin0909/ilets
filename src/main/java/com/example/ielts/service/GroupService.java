@@ -4,6 +4,7 @@ import com.example.ielts.dto.GroupCreateRequest;
 import com.example.ielts.dto.GroupResponse;
 import com.example.ielts.entity.Group;
 import com.example.ielts.repo.CourseRepository;
+import com.example.ielts.repo.EnrollmentRepository;
 import com.example.ielts.repo.GroupRepository;
 import com.example.ielts.repo.TeacherRepository;
 import com.example.ielts.security.UserPrincipal;
@@ -24,6 +25,7 @@ public class GroupService {
     private final GroupRepository groupRepo;
     private final TeacherRepository teacherRepo;
     private final CourseRepository courseRepo;
+    private final EnrollmentRepository enrollmentRepo;
 
     public GroupResponse create(GroupCreateRequest req) {
         // faqat ADMIN/RECEPTION (double-check)
@@ -58,6 +60,12 @@ public class GroupService {
             groups = groupRepo.findAll();
         } else if (p.isTeacher() && p.getTeacherId() != null) {
             groups = groupRepo.findAllByTeacherId(p.getTeacherId());
+        } else if ("STUDENT".equals(p.getRole()) && p.getStudentId() != null) {
+            groups = enrollmentRepo.findByStudentId(p.getStudentId()).stream()
+                    .map(e -> groupRepo.findById(e.getGroupId()).orElse(null))
+                    .filter(java.util.Objects::nonNull)
+                    .distinct()
+                    .toList();
         } else {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Forbidden");
         }
@@ -165,14 +173,23 @@ public class GroupService {
 
     private GroupResponse toResponse(Group g) {
         GroupResponse r = new GroupResponse();
-        r.groupId = g.getGroupId();
+        r.groupId  = g.getGroupId();
         r.courseId = g.getCourseId();
         r.teacherId = g.getTeacherId();
         r.groupName = g.getGroupName();
         r.startDate = g.getStartDate();
-        r.endDate = g.getEndDate();
-        r.schedule = g.getSchedule();
+        r.endDate   = g.getEndDate();
+        r.schedule  = g.getSchedule();
         r.createdAt = g.getCreatedAt();
+        // enrich with names
+        if (g.getTeacherId() != null) {
+            teacherRepo.findById(g.getTeacherId())
+                    .ifPresent(t -> r.teacherName = t.getFullName());
+        }
+        if (g.getCourseId() != null) {
+            courseRepo.findById(g.getCourseId())
+                    .ifPresent(c -> r.courseName = c.getTitle());
+        }
         return r;
     }
 

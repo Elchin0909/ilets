@@ -24,8 +24,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -151,6 +154,54 @@ public class ChatController {
         return toDto(chatRepo.save(msg));
     }
 
+    // ── GET /summary — hamma guruhlar uchun oxirgi xabar ─────────────────────
+
+    @PreAuthorize("isAuthenticated()")
+    @GetMapping("/summary")
+    public List<Map<String, Object>> getSummary() {
+        UserPrincipal p = principal();
+        List<com.example.ielts.entity.Group> groups;
+
+        if ("ADMIN".equals(p.getRole()) || "RECEPTION".equals(p.getRole())) {
+            groups = groupRepo.findAll();
+        } else if ("TEACHER".equals(p.getRole()) && p.getTeacherId() != null) {
+            groups = groupRepo.findAllByTeacherId(p.getTeacherId());
+        } else if ("STUDENT".equals(p.getRole()) && p.getStudentId() != null) {
+            groups = enrollmentRepo.findByStudentId(p.getStudentId()).stream()
+                    .map(e -> groupRepo.findById(e.getGroupId()).orElse(null))
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .collect(Collectors.toList());
+        } else {
+            return List.of();
+        }
+
+        List<UUID> groupIds = groups.stream()
+                .map(com.example.ielts.entity.Group::getGroupId)
+                .collect(Collectors.toList());
+        if (groupIds.isEmpty()) return List.of();
+
+        Map<UUID, ChatMessage> lastByGroup = chatRepo.findLastMessagePerGroup(groupIds).stream()
+                .collect(Collectors.toMap(ChatMessage::getGroupId, m -> m, (a, b) -> a));
+
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (com.example.ielts.entity.Group g : groups) {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("groupId", g.getGroupId());
+            item.put("groupName", g.getGroupName());
+            ChatMessage last = lastByGroup.get(g.getGroupId());
+            if (last != null) {
+                item.put("lastContent", last.getContent() != null ? last.getContent() : last.getFileName());
+                item.put("lastSenderName", last.getSenderName());
+                item.put("lastSentAt", last.getSentAt());
+                item.put("lastMessageId", last.getMessageId());
+                item.put("lastMessageType", last.getMessageType());
+            }
+            result.add(item);
+        }
+        return result;
+    }
+
     // ── helpers ───────────────────────────────────────────────────────────────
 
     private UserPrincipal principal() {
@@ -162,7 +213,7 @@ public class ChatController {
     }
 
     private void checkAccess(UserPrincipal p, UUID groupId) {
-        if ("ADMIN".equals(p.getRole())) return;
+        if ("ADMIN".equals(p.getRole()) || "RECEPTION".equals(p.getRole())) return;
         if ("TEACHER".equals(p.getRole()) && p.getTeacherId() != null) {
             if (!groupRepo.existsByGroupIdAndTeacherId(groupId, p.getTeacherId())) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bu guruh chatiga ruxsatiz");

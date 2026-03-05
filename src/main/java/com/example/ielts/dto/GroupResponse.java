@@ -9,6 +9,8 @@ public class GroupResponse {
     public UUID groupId;
     public UUID courseId;
     public UUID teacherId;
+    public String teacherName;   // e.g. "Ali Valiyev"
+    public String courseName;    // e.g. "Pre-IELTS"
     public String groupName;
     public LocalDate startDate;
     public LocalDate endDate;

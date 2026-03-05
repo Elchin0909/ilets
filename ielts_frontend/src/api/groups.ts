@@ -1,12 +1,14 @@
 import api from './axios';
 import type { Group, GroupCreateRequest, Enrollment, EnrollmentCreateRequest } from '../types';
 
-// Backend sends { groupId: UUID, courseId: UUID, teacherId: UUID, groupName, startDate, endDate, schedule }
+// Backend sends { groupId, courseId, teacherId, groupName, teacherName, courseName, startDate, endDate, schedule }
 const mapGroup = (g: any): Group => ({
   id: String(g.groupId ?? g.id),
   name: g.groupName ?? g.name ?? '',
   courseId: String(g.courseId),
   teacherId: String(g.teacherId),
+  teacherName: g.teacherName ?? undefined,
+  courseName: g.courseName ?? undefined,
   startDate: g.startDate,
   endDate: g.endDate,
   schedule: g.schedule,

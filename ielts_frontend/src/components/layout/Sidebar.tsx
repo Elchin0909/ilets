@@ -15,8 +15,11 @@ import {
   PenLine,
   BarChart2,
   CreditCard,
+  MessageSquare,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useQuery } from '@tanstack/react-query';
+import { getChatSummary } from '../../api/chat';
 
 const navItems = [
   { to: '/', label: 'Bosh Sahifa', icon: LayoutDashboard, roles: ['ADMIN', 'TEACHER', 'RECEPTION'] },
@@ -24,6 +27,7 @@ const navItems = [
   { to: '/teachers', label: "O'qituvchilar", icon: GraduationCap, roles: ['ADMIN', 'RECEPTION'] },
   { to: '/courses', label: 'Kurslar', icon: BookOpen, roles: ['ADMIN', 'RECEPTION'] },
   { to: '/groups', label: 'Guruhlar', icon: Layers, roles: ['ADMIN', 'TEACHER', 'RECEPTION'] },
+  { to: '/chats', label: 'Chatlar', icon: MessageSquare, roles: ['ADMIN', 'TEACHER', 'RECEPTION', 'STUDENT'], chat: true },
   { to: '/calendar', label: 'Kalendar', icon: CalendarDays, roles: ['ADMIN', 'TEACHER', 'RECEPTION'] },
   { to: '/lessons', label: 'Darslar', icon: CalendarCheck, roles: ['ADMIN', 'TEACHER', 'RECEPTION'] },
   { to: '/exams', label: 'Imtihonlar', icon: ClipboardList, roles: ['ADMIN', 'TEACHER', 'RECEPTION'] },
@@ -39,7 +43,19 @@ const navItems = [
 export default function Sidebar() {
   const { user, logout } = useAuth();
 
-  const visibleItems = navItems.filter(({ roles }) => roles.includes(user?.role ?? ''));
+  // Chat summary — xabar bor guruhlar sonini bilish uchun
+  const { data: summaries = [] } = useQuery({
+    queryKey: ['chatSummary'],
+    queryFn: getChatSummary,
+    refetchInterval: 30_000,
+    enabled: !!user,
+  });
+
+  const groupsWithMessages = summaries.filter(s => !!s.lastMessageId).length;
+
+  const visibleItems = navItems.filter(({ roles }) =>
+    roles.includes(user?.role ?? '')
+  );
 
   return (
     <aside className="fixed top-0 left-0 h-screen w-64 bg-gray-900 flex flex-col z-40">
@@ -58,7 +74,7 @@ export default function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        {visibleItems.map(({ to, label, icon: Icon }) => (
+        {visibleItems.map(({ to, label, icon: Icon, chat }: any) => (
           <NavLink
             key={to}
             to={to}
@@ -72,7 +88,13 @@ export default function Sidebar() {
             }
           >
             <Icon size={18} />
-            {label}
+            <span className="flex-1">{label}</span>
+            {/* Chat badge */}
+            {chat && groupsWithMessages > 0 && (
+              <span className="bg-indigo-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                {groupsWithMessages > 9 ? '9+' : groupsWithMessages}
+              </span>
+            )}
           </NavLink>
         ))}
       </nav>

@@ -220,10 +220,22 @@ export default function GroupDetailPage() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{group?.name ?? 'Guruh Tafsilotlari'}</h1>
             {group && (
-              <div className="flex flex-wrap gap-4 mt-2 text-sm text-gray-500">
-                {group.startDate && <span>Boshlanish: {group.startDate}</span>}
-                {group.endDate && <span>Tugash: {group.endDate}</span>}
-                {group.schedule && <span>Jadval: {group.schedule}</span>}
+              <div className="flex flex-wrap gap-x-5 gap-y-1 mt-2 text-sm text-gray-500">
+                {group.teacherName && (
+                  <span className="flex items-center gap-1">
+                    <span>👨‍🏫</span>
+                    <span className="font-medium text-gray-700">{group.teacherName}</span>
+                  </span>
+                )}
+                {group.courseName && (
+                  <span className="flex items-center gap-1">
+                    <span>📚</span>
+                    <span>{group.courseName}</span>
+                  </span>
+                )}
+                {group.startDate && <span>📅 {group.startDate}</span>}
+                {group.endDate && <span>→ {group.endDate}</span>}
+                {group.schedule && <span>🕐 {group.schedule}</span>}
               </div>
             )}
           </div>

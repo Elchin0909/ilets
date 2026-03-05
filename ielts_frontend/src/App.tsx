@@ -28,6 +28,7 @@ import CreateTestPage from './pages/quiz/CreateTestPage';
 import TakeQuizPage from './pages/quiz/TakeQuizPage';
 import QuizResultsPage from './pages/quiz/QuizResultsPage';
 import GroupChatPage from './pages/chat/GroupChatPage';
+import ChatsPage from './pages/chat/ChatsPage';
 import AnalyticsPage from './pages/analytics/AnalyticsPage';
 import PaymentsPage from './pages/payments/PaymentsPage';
 import CalendarPage from './pages/calendar/CalendarPage';
@@ -82,6 +83,7 @@ export default function App() {
                 <Route path="/quiz/tests/create" element={<CreateTestPage />} />
                 <Route path="/quiz/take/:sessionId" element={<TakeQuizPage />} />
                 <Route path="/quiz/results/:sessionId" element={<QuizResultsPage />} />
+                <Route path="/chats" element={<ChatsPage />} />
                 <Route path="/chat/group/:groupId" element={<GroupChatPage />} />
               </Route>
             </Route>

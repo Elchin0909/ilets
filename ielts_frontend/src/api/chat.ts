@@ -13,6 +13,19 @@ export interface ChatMessage {
   sentAt: string;
 }
 
+export interface ChatSummary {
+  groupId: string;
+  groupName: string;
+  lastContent?: string | null;
+  lastSenderName?: string | null;
+  lastSentAt?: string | null;
+  lastMessageId?: string | null;
+  lastMessageType?: string | null;
+}
+
+export const getChatSummary = () =>
+  api.get<ChatSummary[]>('/chat/summary').then(r => r.data);
+
 export const getChatMessages = (groupId: string, limit = 100) =>
   api.get<ChatMessage[]>(`/chat/group/${groupId}`, { params: { limit } }).then(r => r.data);
 
