@@ -28,8 +28,7 @@ const ROLE_LABEL: Record<string, string> = {
 function formatTime(sentAt: string) {
   const d = new Date(sentAt);
   const now = new Date();
-  const isToday = d.toDateString() === now.toDateString();
-  if (isToday)
+  if (d.toDateString() === now.toDateString())
     return d.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' });
   return (
     d.toLocaleDateString('uz-UZ', { day: '2-digit', month: 'short' }) +
@@ -53,43 +52,96 @@ function isImageFile(name: string | null) {
   return /\.(jpe?g|png|gif|webp)$/i.test(name);
 }
 
-// ── sub-components ────────────────────────────────────────────────────────────
-
-function FileBubble({ msg, isMe }: { msg: ChatMessage; isMe: boolean }) {
-  const name = msg.fileName ?? msg.content ?? 'fayl';
-  if (isImageFile(name) && msg.fileUrl) {
-    return (
-      <a href={msg.fileUrl} target="_blank" rel="noreferrer">
-        <img
-          src={msg.fileUrl}
-          alt={name}
-          className="max-w-[220px] max-h-[200px] rounded-xl object-cover border border-white/20 cursor-pointer hover:opacity-90 transition"
-          loading="lazy"
-        />
-      </a>
-    );
+/** Pick the best supported MediaRecorder audio mimeType */
+function bestAudioMime(): string {
+  const candidates = [
+    'audio/webm;codecs=opus',
+    'audio/webm',
+    'audio/ogg;codecs=opus',
+    'audio/ogg',
+    'audio/mp4',
+    '',           // browser default — always works
+  ];
+  for (const t of candidates) {
+    if (t === '' || (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(t))) {
+      return t;
+    }
   }
+  return '';
+}
+
+function mimeToExt(mime: string): string {
+  if (mime.includes('ogg')) return '.ogg';
+  if (mime.includes('mp4')) return '.m4a';
+  return '.webm';
+}
+
+// ── IMAGE bubble (Telegram-style: image IS the bubble, no padding) ────────────
+
+function ImageBubble({ msg, isMe }: { msg: ChatMessage; isMe: boolean }) {
+  const name = msg.fileName ?? 'rasm';
+  return (
+    <a
+      href={msg.fileUrl ?? '#'}
+      target="_blank"
+      rel="noreferrer"
+      className={`block overflow-hidden rounded-2xl shadow-md cursor-pointer hover:brightness-95 transition ${
+        isMe ? 'rounded-tr-sm' : 'rounded-tl-sm'
+      }`}
+      style={{ maxWidth: '260px' }}
+    >
+      <img
+        src={msg.fileUrl ?? ''}
+        alt={name}
+        loading="lazy"
+        className="block w-full max-h-[260px] object-cover"
+      />
+    </a>
+  );
+}
+
+// ── DOCUMENT bubble ───────────────────────────────────────────────────────────
+
+function DocBubble({ msg, isMe }: { msg: ChatMessage; isMe: boolean }) {
+  const name = msg.fileName ?? msg.content ?? 'fayl';
   return (
     <a
       href={msg.fileUrl ?? '#'}
       download={name}
       target="_blank"
       rel="noreferrer"
-      className={`flex items-center gap-2 hover:opacity-80 transition rounded-lg px-1 py-0.5 ${
-        isMe ? 'text-white' : 'text-indigo-700'
-      }`}
+      className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl shadow-sm max-w-[260px] ${
+        isMe
+          ? 'bg-indigo-600 text-white rounded-tr-sm hover:bg-indigo-700'
+          : 'bg-gray-100 text-gray-800 rounded-tl-sm hover:bg-gray-200'
+      } transition`}
     >
-      <FileText size={18} className="flex-shrink-0 opacity-80" />
-      <span className="text-sm underline underline-offset-2 break-all line-clamp-2">{name}</span>
-      <Download size={13} className="flex-shrink-0 opacity-60 ml-auto" />
+      <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
+        isMe ? 'bg-white/20' : 'bg-indigo-100'
+      }`}>
+        <FileText size={18} className={isMe ? 'text-white' : 'text-indigo-600'} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium truncate">{name}</p>
+        <p className={`text-xs ${isMe ? 'text-white/70' : 'text-gray-400'}`}>
+          Yuklab olish
+        </p>
+      </div>
+      <Download size={14} className={`flex-shrink-0 ${isMe ? 'text-white/70' : 'text-gray-400'}`} />
     </a>
   );
 }
 
+// ── VOICE bubble ──────────────────────────────────────────────────────────────
+
 function VoiceBubble({ msg, isMe }: { msg: ChatMessage; isMe: boolean }) {
   return (
-    <div className={`flex items-center gap-2 ${isMe ? 'flex-row-reverse' : ''}`}>
-      <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${
+    <div className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl shadow-sm min-w-[200px] ${
+      isMe
+        ? 'bg-indigo-600 text-white rounded-tr-sm'
+        : 'bg-gray-100 text-gray-800 rounded-tl-sm'
+    }`}>
+      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
         isMe ? 'bg-white/20' : 'bg-indigo-100'
       }`}>
         🎙️
@@ -97,8 +149,9 @@ function VoiceBubble({ msg, isMe }: { msg: ChatMessage; isMe: boolean }) {
       <audio
         controls
         src={msg.fileUrl ?? undefined}
-        className="h-9 max-w-[180px] sm:max-w-[220px]"
+        className="flex-1 h-8"
         preload="metadata"
+        style={isMe ? { filter: 'invert(1) hue-rotate(180deg)' } : undefined}
       />
     </div>
   );
@@ -177,7 +230,7 @@ export default function GroupChatPage() {
     [],
   );
 
-  // ── handlers ─────────────────────────────────────────────────────────────
+  // ── text send ─────────────────────────────────────────────────────────────
 
   const handleSend = () => {
     const trimmed = text.trim();
@@ -189,6 +242,8 @@ export default function GroupChatPage() {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
   };
 
+  // ── file attach ───────────────────────────────────────────────────────────
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -196,37 +251,78 @@ export default function GroupChatPage() {
     e.target.value = '';
   };
 
+  // ── voice recording ───────────────────────────────────────────────────────
+
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mr     = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+
+      const mime    = bestAudioMime();
+      const options = mime ? { mimeType: mime } : {};
+      let mr: MediaRecorder;
+      try {
+        mr = new MediaRecorder(stream, options);
+      } catch {
+        // fallback: no options
+        mr = new MediaRecorder(stream);
+      }
+
       chunksRef.current = [];
-      mr.ondataavailable = (ev) => { if (ev.data.size > 0) chunksRef.current.push(ev.data); };
-      mr.onstop = () => {
+
+      mr.addEventListener('dataavailable', (ev) => {
+        if (ev.data && ev.data.size > 0) chunksRef.current.push(ev.data);
+      });
+
+      mr.addEventListener('stop', () => {
         stream.getTracks().forEach(t => t.stop());
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
-        const file = new File([blob], `voice-${Date.now()}.webm`, { type: 'audio/webm' });
+        if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+
+        if (chunksRef.current.length === 0) {
+          toast.error('Ovoz yozib bo\'lmadi — qurilmani tekshiring');
+          setRecSec(0);
+          return;
+        }
+
+        const actualMime = mr.mimeType || mime || 'audio/webm';
+        const ext  = mimeToExt(actualMime);
+        const blob = new Blob(chunksRef.current, { type: actualMime });
+        const file = new File([blob], `voice-${Date.now()}${ext}`, { type: actualMime });
         fileMutation.mutate({ file, type: 'VOICE' });
-        if (timerRef.current) clearInterval(timerRef.current);
         setRecSec(0);
-      };
-      mr.start(200);
+      });
+
+      mr.addEventListener('error', (ev) => {
+        console.error('MediaRecorder error:', ev);
+        toast.error('Ovoz yozishda xatolik');
+        setIsRecording(false);
+        if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+      });
+
+      mr.start(100); // 100 ms chunks — more frequent, more reliable
       mrRef.current = mr;
       setIsRecording(true);
       setRecSec(0);
-      timerRef.current = setInterval(() => setRecSec(s => s + 1), 1000);
-    } catch {
-      toast.error('Mikrofonga ruxsat berilmadi');
+
+      // start counting seconds
+      timerRef.current = setInterval(() => {
+        setRecSec(prev => prev + 1);
+      }, 1000);
+
+    } catch (err) {
+      console.error('getUserMedia error:', err);
+      toast.error('Mikrofonga ruxsat berilmadi yoki topilmadi');
     }
   };
 
   const stopRecording = () => {
-    mrRef.current?.stop();
+    if (mrRef.current && mrRef.current.state !== 'inactive') {
+      mrRef.current.stop();
+    }
     setIsRecording(false);
-    if (timerRef.current) clearInterval(timerRef.current);
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
   };
 
-  // ── group by date ─────────────────────────────────────────────────────────
+  // ── group messages by date ────────────────────────────────────────────────
 
   const grouped: { date: string; msgs: ChatMessage[] }[] = [];
   for (const msg of messages) {
@@ -242,6 +338,7 @@ export default function GroupChatPage() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-6rem)]">
+
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <div className="bg-white rounded-xl border border-gray-200 p-4 mb-3 flex items-center gap-3 flex-shrink-0 shadow-sm">
         <button
@@ -257,7 +354,7 @@ export default function GroupChatPage() {
           <p className="font-semibold text-gray-900 truncate">{group?.name ?? 'Guruh Chat'}</p>
           <p className="text-xs text-gray-400">
             {canUpload
-              ? "Fayl (PDF/Slayd/Rasm) va ovozli xabar yuborishingiz mumkin"
+              ? "Fayl · Rasm · Ovoz yuborishingiz mumkin"
               : "Faqat matn yozishingiz mumkin"}
           </p>
         </div>
@@ -290,8 +387,9 @@ export default function GroupChatPage() {
                 </div>
 
                 {dayMsgs.map((msg) => {
-                  const isMe = msg.senderUsername === user?.username;
-                  const type = msg.messageType ?? 'TEXT';
+                  const isMe   = msg.senderUsername === user?.username;
+                  const type   = msg.messageType ?? 'TEXT';
+                  const isImg  = type === 'FILE' && isImageFile(msg.fileName);
 
                   return (
                     <div
@@ -299,36 +397,40 @@ export default function GroupChatPage() {
                       className={`flex mb-2.5 ${isMe ? 'justify-end' : 'justify-start'}`}
                     >
                       <div className={`max-w-[72%] flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-                        {/* Name + role badge (others only) */}
+
+                        {/* Name + role (others only, not for image to save space) */}
                         {!isMe && (
                           <div className="flex items-center gap-1.5 mb-1 ml-1">
                             <span className="text-xs font-semibold text-gray-700">
                               {msg.senderName || msg.senderUsername}
                             </span>
-                            <span
-                              className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${
-                                ROLE_COLOR[msg.senderRole] ?? 'bg-gray-100 text-gray-500'
-                              }`}
-                            >
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${
+                              ROLE_COLOR[msg.senderRole] ?? 'bg-gray-100 text-gray-500'
+                            }`}>
                               {ROLE_LABEL[msg.senderRole] ?? msg.senderRole}
                             </span>
                           </div>
                         )}
 
-                        {/* Bubble */}
-                        <div
-                          className={`px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed shadow-sm ${
+                        {/* Content */}
+                        {type === 'TEXT' && (
+                          <div className={`px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed shadow-sm ${
                             isMe
                               ? 'bg-indigo-600 text-white rounded-tr-sm'
                               : 'bg-gray-100 text-gray-800 rounded-tl-sm'
-                          }`}
-                        >
-                          {type === 'TEXT' && (
+                          }`}>
                             <span className="whitespace-pre-wrap break-words">{msg.content}</span>
-                          )}
-                          {type === 'FILE' && <FileBubble msg={msg} isMe={isMe} />}
-                          {type === 'VOICE' && <VoiceBubble msg={msg} isMe={isMe} />}
-                        </div>
+                          </div>
+                        )}
+
+                        {/* Image: no bubble padding — image IS the bubble */}
+                        {isImg && <ImageBubble msg={msg} isMe={isMe} />}
+
+                        {/* Doc file */}
+                        {type === 'FILE' && !isImg && <DocBubble msg={msg} isMe={isMe} />}
+
+                        {/* Voice */}
+                        {type === 'VOICE' && <VoiceBubble msg={msg} isMe={isMe} />}
 
                         {/* Timestamp */}
                         <span className="text-[11px] text-gray-400 mt-1 px-1">
@@ -347,19 +449,21 @@ export default function GroupChatPage() {
 
       {/* ── Input bar ───────────────────────────────────────────────────── */}
       <div className="bg-white rounded-xl border border-gray-200 p-3 flex-shrink-0 shadow-sm">
+
         {/* Recording indicator */}
         {isRecording && (
           <div className="flex items-center gap-2 mb-2 px-1">
             <span className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" />
-            <span className="text-sm text-red-600 font-semibold">Yozilmoqda… {recSec}s</span>
+            <span className="text-sm text-red-600 font-bold">● Yozilmoqda… {recSec}s</span>
             <span className="text-xs text-gray-400 ml-1">
-              (To'xtatish uchun mikrofon tugmasini bosing)
+              (Mikrofon tugmasi → to'xtat va yuboriladi)
             </span>
           </div>
         )}
 
         <div className="flex items-end gap-2">
-          {/* Attach file – teacher/admin only */}
+
+          {/* Attach file – teacher/admin */}
           {canUpload && (
             <>
               <input
@@ -372,7 +476,7 @@ export default function GroupChatPage() {
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isBusy || isRecording}
-                title="Fayl biriktirish (rasm, PDF, slayd)"
+                title="Rasm / PDF / Slayd biriktirish"
                 className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-100 hover:bg-indigo-100 text-gray-500 hover:text-indigo-600 transition disabled:opacity-40 flex-shrink-0"
               >
                 <Paperclip size={17} />
@@ -388,7 +492,7 @@ export default function GroupChatPage() {
             placeholder={
               isRecording
                 ? 'Ovoz yozilmoqda…'
-                : 'Xabar yozing… (Enter = yuborish, Shift+Enter = yangi qator)'
+                : 'Xabar yozing… (Enter = yuborish)'
             }
             disabled={isRecording}
             rows={1}
@@ -401,15 +505,15 @@ export default function GroupChatPage() {
             }}
           />
 
-          {/* Mic button – teacher/admin only */}
+          {/* Mic – teacher/admin */}
           {canUpload && (
             <button
               onClick={isRecording ? stopRecording : startRecording}
               disabled={isBusy && !isRecording}
-              title={isRecording ? "To'xtatish va yuborish" : "Ovozli xabar yozish"}
+              title={isRecording ? "To'xtatish va yuborish" : "Ovozli xabar"}
               className={`w-10 h-10 flex items-center justify-center rounded-xl transition flex-shrink-0 ${
                 isRecording
-                  ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse'
+                  ? 'bg-red-500 hover:bg-red-600 text-white'
                   : 'bg-gray-100 hover:bg-green-100 text-gray-500 hover:text-green-600 disabled:opacity-40'
               }`}
             >
@@ -417,7 +521,7 @@ export default function GroupChatPage() {
             </button>
           )}
 
-          {/* Send */}
+          {/* Send text */}
           <button
             onClick={handleSend}
             disabled={!text.trim() || textMutation.isPending || isRecording}
@@ -431,11 +535,11 @@ export default function GroupChatPage() {
           </button>
         </div>
 
-        {/* Student notice */}
+        {/* Student hint */}
         {!canUpload && (
           <p className="text-[11px] text-gray-400 mt-2 px-1 flex items-center gap-1">
             <Image size={11} className="opacity-60" />
-            Siz faqat matn yuborish mumkin. Fayl va ovoz — faqat o'qituvchi/admin uchun.
+            Faqat matn — fayl va ovoz faqat o'qituvchi/admin uchun.
           </p>
         )}
       </div>
