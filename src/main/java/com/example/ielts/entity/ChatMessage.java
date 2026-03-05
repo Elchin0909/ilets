@@ -25,14 +25,24 @@ public class ChatMessage {
     @Column(name = "sender_role", length = 20)
     private String senderRole;
 
-    @Column(name = "content", nullable = false, columnDefinition = "TEXT")
+    /** TEXT | FILE | VOICE */
+    @Column(name = "message_type", length = 10)
+    private String messageType = "TEXT";
+
+    @Column(name = "content", columnDefinition = "TEXT")
     private String content;
+
+    @Column(name = "file_url", length = 500)
+    private String fileUrl;
+
+    @Column(name = "file_name", length = 255)
+    private String fileName;
 
     @Column(name = "sent_at")
     private LocalDateTime sentAt = LocalDateTime.now();
 
-    public UUID getMessageId() { return messageId; }
-    public UUID getGroupId() { return groupId; }
+    public UUID getMessageId()   { return messageId; }
+    public UUID getGroupId()     { return groupId; }
     public void setGroupId(UUID groupId) { this.groupId = groupId; }
     public String getSenderUsername() { return senderUsername; }
     public void setSenderUsername(String senderUsername) { this.senderUsername = senderUsername; }
@@ -40,8 +50,14 @@ public class ChatMessage {
     public void setSenderName(String senderName) { this.senderName = senderName; }
     public String getSenderRole() { return senderRole; }
     public void setSenderRole(String senderRole) { this.senderRole = senderRole; }
-    public String getContent() { return content; }
+    public String getMessageType() { return messageType; }
+    public void setMessageType(String messageType) { this.messageType = messageType; }
+    public String getContent()   { return content; }
     public void setContent(String content) { this.content = content; }
+    public String getFileUrl()   { return fileUrl; }
+    public void setFileUrl(String fileUrl) { this.fileUrl = fileUrl; }
+    public String getFileName()  { return fileName; }
+    public void setFileName(String fileName) { this.fileName = fileName; }
     public LocalDateTime getSentAt() { return sentAt; }
     public void setSentAt(LocalDateTime sentAt) { this.sentAt = sentAt; }
 }

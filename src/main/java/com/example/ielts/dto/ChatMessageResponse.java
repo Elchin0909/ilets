@@ -9,6 +9,9 @@ public class ChatMessageResponse {
     public String senderUsername;
     public String senderName;
     public String senderRole;
+    public String messageType;   // TEXT | FILE | VOICE
     public String content;
+    public String fileUrl;
+    public String fileName;
     public LocalDateTime sentAt;
 }

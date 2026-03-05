@@ -18,12 +18,19 @@ spring:
   flyway:
     enabled: false
 
+  servlet:
+    multipart:
+      max-file-size: 55MB
+      max-request-size: 60MB
+
   data:
     redis:
       host: localhost
       port: 6379
 
 app:
+  upload:
+    dir: ./uploads
   jwt:
     secret: "CHANGE_ME_TO_A_LONG_RANDOM_STRING_AT_LEAST_32_CHARS"
     issuer: "ielts-centre"
