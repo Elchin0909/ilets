@@ -52,11 +52,14 @@ public class UploadController {
         };
 
         String filename = UUID.randomUUID() + "." + ext;
-        Path dir = Paths.get(uploadDir, "avatars");
+        Path dir    = Paths.get(uploadDir, "avatars").toAbsolutePath().normalize();
+        Path target = dir.resolve(filename);
 
         try {
             Files.createDirectories(dir);
-            file.transferTo(dir.resolve(filename).toFile());
+            try (java.io.InputStream in = file.getInputStream()) {
+                Files.copy(in, target, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            }
         } catch (IOException e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Fayl saqlashda xatolik: " + e.getMessage());

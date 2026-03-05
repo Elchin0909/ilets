@@ -126,11 +126,15 @@ public class ChatController {
         String original = file.getOriginalFilename() != null ? file.getOriginalFilename() : "file";
         String ext      = original.contains(".") ? original.substring(original.lastIndexOf('.')) : "";
         String saved    = UUID.randomUUID() + ext;
-        Path   dir      = Paths.get(uploadDir, "chat");
+        // toAbsolutePath() ensures relative paths are resolved from user.dir, not Tomcat's work dir
+        Path   dir      = Paths.get(uploadDir, "chat").toAbsolutePath().normalize();
+        Path   target   = dir.resolve(saved);
 
         try {
             Files.createDirectories(dir);
-            file.transferTo(dir.resolve(saved).toFile());
+            try (java.io.InputStream in = file.getInputStream()) {
+                Files.copy(in, target, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            }
         } catch (IOException e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Fayl saqlashda xatolik: " + e.getMessage());
