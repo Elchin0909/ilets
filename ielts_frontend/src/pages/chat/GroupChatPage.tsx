@@ -79,24 +79,52 @@ function mimeToExt(mime: string): string {
 // ── IMAGE bubble (Telegram-style: image IS the bubble, no padding) ────────────
 
 function ImageBubble({ msg, isMe }: { msg: ChatMessage; isMe: boolean }) {
+  const [lightbox, setLightbox] = useState(false);
   const name = msg.fileName ?? 'rasm';
+  const src  = msg.fileUrl ?? '';
+
   return (
-    <a
-      href={msg.fileUrl ?? '#'}
-      target="_blank"
-      rel="noreferrer"
-      className={`block overflow-hidden rounded-2xl shadow-md cursor-pointer hover:brightness-95 transition ${
-        isMe ? 'rounded-tr-sm' : 'rounded-tl-sm'
-      }`}
-      style={{ maxWidth: '260px' }}
-    >
-      <img
-        src={msg.fileUrl ?? ''}
-        alt={name}
-        loading="lazy"
-        className="block w-full max-h-[260px] object-cover"
-      />
-    </a>
+    <>
+      {/* Thumbnail — click to open lightbox */}
+      <div
+        onClick={() => setLightbox(true)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={e => e.key === 'Enter' && setLightbox(true)}
+        className={`overflow-hidden rounded-2xl shadow-md cursor-pointer hover:brightness-95 active:brightness-90 transition ${
+          isMe ? 'rounded-tr-sm' : 'rounded-tl-sm'
+        }`}
+        style={{ maxWidth: '260px' }}
+      >
+        <img
+          src={src}
+          alt={name}
+          loading="lazy"
+          className="block w-full max-h-[260px] object-cover"
+        />
+      </div>
+
+      {/* Lightbox overlay */}
+      {lightbox && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+          onClick={() => setLightbox(false)}
+        >
+          <img
+            src={src}
+            alt={name}
+            className="max-w-full max-h-full rounded-2xl shadow-2xl object-contain"
+            onClick={e => e.stopPropagation()}
+          />
+          <button
+            onClick={() => setLightbox(false)}
+            className="absolute top-4 right-4 text-white text-3xl font-bold leading-none hover:opacity-70 transition"
+          >
+            ×
+          </button>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -171,11 +199,12 @@ export default function GroupChatPage() {
   const [isRecording, setIsRecording] = useState(false);
   const [recSec, setRecSec]           = useState(0);
 
-  const bottomRef    = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const mrRef        = useRef<MediaRecorder | null>(null);
-  const chunksRef    = useRef<Blob[]>([]);
-  const timerRef     = useRef<ReturnType<typeof setInterval> | null>(null);
+  const bottomRef     = useRef<HTMLDivElement>(null);
+  const fileInputRef  = useRef<HTMLInputElement>(null);
+  const mrRef         = useRef<MediaRecorder | null>(null);
+  const chunksRef     = useRef<Blob[]>([]);
+  const timerRef      = useRef<ReturnType<typeof setInterval> | null>(null);
+  const recStartRef   = useRef<number>(0); // Date.now() when recording started
 
   // ── queries ───────────────────────────────────────────────────────────────
 
@@ -283,10 +312,12 @@ export default function GroupChatPage() {
           return;
         }
 
-        const actualMime = mr.mimeType || mime || 'audio/webm';
-        const ext  = mimeToExt(actualMime);
-        const blob = new Blob(chunksRef.current, { type: actualMime });
-        const file = new File([blob], `voice-${Date.now()}${ext}`, { type: actualMime });
+        // Strip codec params so backend matches exactly: "audio/webm;codecs=opus" → "audio/webm"
+        const rawMime   = mr.mimeType || mime || 'audio/webm';
+        const cleanMime = rawMime.includes(';') ? rawMime.split(';')[0].trim() : rawMime;
+        const ext  = mimeToExt(cleanMime);
+        const blob = new Blob(chunksRef.current, { type: cleanMime });
+        const file = new File([blob], `voice-${Date.now()}${ext}`, { type: cleanMime });
         fileMutation.mutate({ file, type: 'VOICE' });
         setRecSec(0);
       });
@@ -300,13 +331,14 @@ export default function GroupChatPage() {
 
       mr.start(100); // 100 ms chunks — more frequent, more reliable
       mrRef.current = mr;
+      recStartRef.current = Date.now();
       setIsRecording(true);
       setRecSec(0);
 
-      // start counting seconds
+      // tick every 500ms → calc from wall-clock, never drifts
       timerRef.current = setInterval(() => {
-        setRecSec(prev => prev + 1);
-      }, 1000);
+        setRecSec(Math.floor((Date.now() - recStartRef.current) / 1000));
+      }, 500);
 
     } catch (err) {
       console.error('getUserMedia error:', err);

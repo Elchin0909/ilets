@@ -81,6 +81,7 @@ public class SecurityConfig {
                         // ✅ PUBLIC
                         .requestMatchers(
                                 "/api/auth/**",
+                                "/uploads/**",          // static uploaded files (UUID names)
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/v3/api-docs/**",
