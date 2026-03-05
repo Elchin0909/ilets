@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   Users, GraduationCap, Layers, BookOpen, TrendingUp,
   ArrowRight, BotMessageSquare, X, Send, Loader2,
-  AlertTriangle, CalendarCheck, CalendarDays,
+  AlertTriangle, CalendarCheck, CalendarDays, ClipboardList,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getStudents } from '../../api/students';
@@ -13,6 +13,7 @@ import { getCourses } from '../../api/courses';
 import { useAuth } from '../../contexts/AuthContext';
 import { aiChat } from '../../api/ai';
 import { getLowAttendanceStudents, type LowAttendanceStudent } from '../../api/attendance';
+import { listTests } from '../../api/quiz';
 import api from '../../api/axios';
 
 // Backend Lesson entity (raw from /api/lessons/today)
@@ -321,7 +322,18 @@ export default function DashboardPage() {
   });
 
   const isTeacher = user?.role === 'TEACHER';
+  const isAdmin = user?.role === 'ADMIN';
   const isAdminOrReception = user?.role === 'ADMIN' || user?.role === 'RECEPTION';
+
+  const { data: allTests = [] } = useQuery({
+    queryKey: ['quizTests'],
+    queryFn: listTests,
+    enabled: isAdmin || isTeacher,
+  });
+  const pendingTests = allTests.filter((t: any) => !t.approved);
+  const myPendingTests = isTeacher
+    ? pendingTests.filter((t: any) => t.teacherId === user?.teacherId)
+    : pendingTests;
 
   const myGroups = isTeacher
     ? groups.filter((g) => g.teacherId === user?.teacherId)
@@ -382,6 +394,54 @@ export default function DashboardPage() {
       {/* Low attendance alert (Admin/Reception only) */}
       {isAdminOrReception && <div className="mb-6"><LowAttendanceWidget /></div>}
 
+      {/* Pending quiz approvals banner (Admin) */}
+      {isAdmin && pendingTests.length > 0 && (
+        <div className="mb-6 bg-amber-50 border border-amber-200 rounded-2xl px-6 py-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
+              <ClipboardList size={18} className="text-amber-600" />
+            </div>
+            <div>
+              <p className="font-semibold text-amber-800 text-sm">
+                {pendingTests.length} ta test tasdiqlash kutmoqda
+              </p>
+              <p className="text-amber-600 text-xs mt-0.5">
+                O'qituvchilar tomonidan yaratilgan testlar sizni kutmoqda
+              </p>
+            </div>
+          </div>
+          <Link
+            to="/quiz/tests"
+            className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition whitespace-nowrap"
+          >
+            Ko'rish <ArrowRight size={14} />
+          </Link>
+        </div>
+      )}
+
+      {/* Pending quiz tests banner (Teacher) */}
+      {isTeacher && myPendingTests.length > 0 && (
+        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-2xl px-6 py-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
+              <ClipboardList size={18} className="text-blue-600" />
+            </div>
+            <div>
+              <p className="font-semibold text-blue-800 text-sm">
+                {myPendingTests.length} ta testingiz tasdiq kutmoqda
+              </p>
+              <p className="text-blue-600 text-xs mt-0.5">Admin tasdiqlaganidan keyin guruhlarga berish mumkin</p>
+            </div>
+          </div>
+          <Link
+            to="/quiz/tests"
+            className="flex items-center gap-1.5 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition whitespace-nowrap"
+          >
+            Test Banki <ArrowRight size={14} />
+          </Link>
+        </div>
+      )}
+
       {/* Main grid: Today's lessons + My groups */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         {/* Bugungi darslar */}
@@ -429,11 +489,12 @@ export default function DashboardPage() {
         <h2 className="font-semibold text-gray-900 mb-4">Tez O'tish</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
-            { to: '/students', label: 'Talabalar', icon: Users, color: 'text-blue-600 bg-blue-50 hover:bg-blue-100' },
-            { to: isTeacher ? '/groups' : '/teachers', label: isTeacher ? 'Guruhlar' : "O'qituvchilar", icon: isTeacher ? Layers : GraduationCap, color: 'text-purple-600 bg-purple-50 hover:bg-purple-100' },
-            { to: '/calendar', label: 'Kalendar', icon: CalendarDays, color: 'text-green-600 bg-green-50 hover:bg-green-100' },
-            { to: '/ai/writing', label: 'AI Writing', icon: BookOpen, color: 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100' },
-          ].map(({ to, label, icon: Icon, color }) => (
+            { to: '/students', label: 'Talabalar', icon: Users, color: 'text-blue-600 bg-blue-50 hover:bg-blue-100', roles: ['ADMIN','TEACHER','RECEPTION'] },
+            { to: isTeacher ? '/groups' : '/teachers', label: isTeacher ? 'Guruhlar' : "O'qituvchilar", icon: isTeacher ? Layers : GraduationCap, color: 'text-purple-600 bg-purple-50 hover:bg-purple-100', roles: ['ADMIN','TEACHER','RECEPTION'] },
+            { to: '/calendar', label: 'Kalendar', icon: CalendarDays, color: 'text-green-600 bg-green-50 hover:bg-green-100', roles: ['ADMIN','TEACHER','RECEPTION'] },
+            { to: '/quiz/tests', label: 'Test Banki', icon: ClipboardList, color: 'text-amber-600 bg-amber-50 hover:bg-amber-100', roles: ['ADMIN','TEACHER'] },
+            { to: '/ai/writing', label: 'AI Writing', icon: BookOpen, color: 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100', roles: ['ADMIN','TEACHER','RECEPTION'] },
+          ].filter(item => item.roles.includes(user?.role ?? '')).map(({ to, label, icon: Icon, color }) => (
             <Link key={to} to={to}
               className={`flex flex-col items-center gap-2.5 p-4 rounded-xl ${color} transition text-center`}>
               <Icon size={22} />

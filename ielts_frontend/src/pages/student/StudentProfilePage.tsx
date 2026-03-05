@@ -8,7 +8,8 @@ import { getStudentExamResults } from '../../api/exams';
 import { getActiveSession } from '../../api/quiz';
 import { getLessonsByGroup } from '../../api/lessons';
 import { uploadAvatar } from '../../api/upload';
-import { BookOpen, TrendingUp, ClipboardList, Phone, Mail, Calendar, PlayCircle, FileText, Camera, Loader2 } from 'lucide-react';
+import { changeMyPassword } from '../../api/auth';
+import { BookOpen, TrendingUp, ClipboardList, Phone, Mail, Calendar, PlayCircle, FileText, Camera, Loader2, KeyRound, Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState, useRef } from 'react';
 import toast from 'react-hot-toast';
@@ -42,6 +43,10 @@ export default function StudentProfilePage() {
   const studentId = user?.studentId ?? '';
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPwd, setShowPwd] = useState(false);
 
   const { data: student, isLoading: loadingStudent } = useQuery({
     queryKey: ['student', studentId],
@@ -91,6 +96,24 @@ export default function StudentProfilePage() {
     },
     onError: () => toast.error('Rasmni saqlashda xatolik'),
   });
+
+  const changePasswordMutation = useMutation({
+    mutationFn: () => changeMyPassword(newPassword),
+    onSuccess: () => {
+      toast.success("Parol muvaffaqiyatli o'zgartirildi!");
+      setNewPassword('');
+      setConfirmPassword('');
+      setShowPasswordForm(false);
+    },
+    onError: () => toast.error("Parolni o'zgartirishda xatolik"),
+  });
+
+  const handlePasswordChange = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword.length < 6) { toast.error("Parol kamida 6 ta belgi bo'lishi kerak"); return; }
+    if (newPassword !== confirmPassword) { toast.error("Parollar mos kelmadi"); return; }
+    changePasswordMutation.mutate();
+  };
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -333,7 +356,7 @@ export default function StudentProfilePage() {
       </div>
 
       {/* Personal info */}
-      <div className="bg-white rounded-xl border border-gray-200">
+      <div className="bg-white rounded-xl border border-gray-200 mb-5">
         <div className="px-5 py-4 border-b border-gray-100">
           <h2 className="font-semibold text-gray-800">Mening Ma'lumotlarim</h2>
         </div>
@@ -354,6 +377,79 @@ export default function StudentProfilePage() {
             <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-md font-medium text-xs">Talaba</span>
           </div>
         </div>
+      </div>
+
+      {/* Password change section */}
+      <div className="bg-white rounded-xl border border-gray-200">
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+          <h2 className="font-semibold text-gray-800 flex items-center gap-2">
+            <KeyRound size={16} className="text-gray-500" /> Parolni O'zgartirish
+          </h2>
+          <button
+            onClick={() => { setShowPasswordForm(!showPasswordForm); setNewPassword(''); setConfirmPassword(''); }}
+            className="text-xs text-indigo-600 hover:text-indigo-800 font-medium transition"
+          >
+            {showPasswordForm ? 'Bekor qilish' : "O'zgartirish"}
+          </button>
+        </div>
+        {showPasswordForm ? (
+          <form onSubmit={handlePasswordChange} className="px-5 py-4 space-y-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Yangi parol</label>
+              <div className="relative">
+                <input
+                  type={showPwd ? 'text' : 'password'}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Kamida 6 ta belgi"
+                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPwd(!showPwd)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showPwd ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Parolni tasdiqlang</label>
+              <input
+                type={showPwd ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Qayta kiriting"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                required
+              />
+            </div>
+            <div className="flex justify-end gap-3 pt-1">
+              <button
+                type="button"
+                onClick={() => { setShowPasswordForm(false); setNewPassword(''); setConfirmPassword(''); }}
+                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 transition"
+              >
+                Bekor
+              </button>
+              <button
+                type="submit"
+                disabled={changePasswordMutation.isPending}
+                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-medium py-2 px-5 rounded-lg text-sm transition"
+              >
+                {changePasswordMutation.isPending
+                  ? <><Loader2 size={14} className="animate-spin" /> Saqlanmoqda...</>
+                  : <><KeyRound size={14} /> Saqlash</>
+                }
+              </button>
+            </div>
+          </form>
+        ) : (
+          <div className="px-5 py-4 text-sm text-gray-400">
+            Parolni o'zgartirish uchun yuqoridagi tugmani bosing.
+          </div>
+        )}
       </div>
     </div>
   );

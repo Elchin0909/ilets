@@ -225,6 +225,17 @@ export default function StudentDetailPage() {
 
   const studentEnrollments = allEnrollments.filter(e => String(e.studentId) === String(studentId));
 
+  // Payment overdue: warn if no payment in last 35 days
+  const isPaymentOverdue = (() => {
+    if (payments.length === 0) return true;
+    const lastPaidAt = payments
+      .map((p: Payment) => p.paidAt ? new Date(p.paidAt).getTime() : 0)
+      .sort((a, b) => b - a)[0];
+    if (!lastPaidAt) return true;
+    const daysSince = (Date.now() - lastPaidAt) / (1000 * 60 * 60 * 24);
+    return daysSince > 35;
+  })();
+
   const presentCount = attendance.filter(a => a.status === 'present').length;
   const absentCount = attendance.filter(a => a.status === 'absent').length;
   const lateCount = attendance.filter(a => a.status === 'late').length;
@@ -281,7 +292,14 @@ export default function StudentDetailPage() {
           <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
         </div>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold text-gray-900">{student?.fullName}</h1>
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-2xl font-bold text-gray-900">{student?.fullName}</h1>
+            {isPaymentOverdue && (
+              <span className="flex items-center gap-1 px-2.5 py-1 bg-red-100 text-red-700 rounded-full text-xs font-semibold border border-red-200">
+                ⚠️ To'lov muddati o'tgan
+              </span>
+            )}
+          </div>
           <div className="flex flex-wrap gap-4 mt-2">
             {student?.phone && (
               <span className="flex items-center gap-1.5 text-sm text-gray-500">

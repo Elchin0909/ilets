@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Plus, Trash2, UserPlus, Pencil, BarChart2, PlayCircle, CheckSquare, Square, Loader2, Trophy } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, UserPlus, Pencil, BarChart2, PlayCircle, CheckSquare, Square, Loader2, Trophy, MessageSquare } from 'lucide-react';
 import {
   getGroup, getGroupEnrollments, createEnrollment, deleteEnrollment,
   getGroupAttendanceSummary, getGroupAvgExamScore,
@@ -337,6 +337,13 @@ export default function GroupDetailPage() {
                       Online Test Boshlash
                     </button>
                   )}
+                  <button
+                    onClick={() => navigate(`/chat/group/${groupId}`)}
+                    className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition text-sm"
+                  >
+                    <MessageSquare size={15} />
+                    Guruh Chati
+                  </button>
                 </div>
                 <button
                   onClick={() => { setExamForm({ groupId: groupId as any, examDate: '', title: '', maxScore: 9 }); setShowAddExam(true); }}
@@ -369,10 +376,11 @@ export default function GroupDetailPage() {
                             {s.status === 'ACTIVE' ? '🟢 Faol' : '✓ Tugadi'}
                           </span>
                           <button
-                            onClick={() => navigate(`/quiz/sessions/${s.sessionId}/results`)}
-                            className="text-xs text-indigo-600 hover:underline"
+                            onClick={() => navigate(`/quiz/results/${s.sessionId}`)}
+                            className="text-xs text-indigo-600 hover:underline flex items-center gap-1"
+                            title="Natijalarni ko'rish"
                           >
-                            <Trophy size={14} />
+                            <Trophy size={14} /> Natijalar
                           </button>
                         </div>
                       </div>

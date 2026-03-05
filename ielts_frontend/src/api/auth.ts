@@ -29,3 +29,5 @@ export const registerStudent = (data: {
   username: string;
   password: string;
 }) => api.post('/auth/register', data).then((r) => r.data);
+
+
