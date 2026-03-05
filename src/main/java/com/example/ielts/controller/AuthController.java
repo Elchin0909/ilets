@@ -9,6 +9,7 @@ import com.example.ielts.dto.auth.AdminOtpRequest;
 import com.example.ielts.dto.auth.AdminOtpVerifyRequest;
 import com.example.ielts.dto.auth.AdminResetPasswordRequest;
 import com.example.ielts.dto.auth.TeacherResetPasswordRequest;
+import com.example.ielts.dto.auth.StudentResetPasswordRequest;
 import com.example.ielts.security.UserPrincipal;
 import com.example.ielts.service.AuthService;
 import com.example.ielts.service.AuthTokenService;
@@ -143,6 +144,19 @@ public class AuthController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
         authService.updatePassword(user, req.newPassword);
         return Map.of("ok", true);
+    }
+
+    // ===== STUDENT reset (ADMIN & TEACHER) =====
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    @PostMapping("/student/reset-password")
+    public Map<String, Object> resetStudentPassword(@RequestBody @Valid StudentResetPasswordRequest req) {
+        studentRepo.findById(req.studentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Talaba topilmadi"));
+        var user = userRepo.findByStudentId(req.studentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Bu talaba uchun login akkaunti topilmadi. Avval foydalanuvchi yarating."));
+        authService.updatePassword(user, req.newPassword);
+        return Map.of("ok", true, "username", user.getUsername());
     }
 
     // ===== SELF: o'z parolini o'zgartirish (har qanday rol) =====

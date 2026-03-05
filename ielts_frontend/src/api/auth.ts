@@ -21,6 +21,10 @@ export const resetTeacherPassword = (teacherId: string, newPassword: string) =>
 export const changeMyPassword = (newPassword: string) =>
   api.post('/auth/change-password', { newPassword }).then((r) => r.data);
 
+// Admin/Teacher: reset a student's password by their studentId (UUID)
+export const resetStudentPassword = (studentId: string, newPassword: string) =>
+  api.post<{ ok: boolean; username: string }>('/auth/student/reset-password', { studentId, newPassword }).then((r) => r.data);
+
 // Public: student self-registration
 export const registerStudent = (data: {
   fullName: string;

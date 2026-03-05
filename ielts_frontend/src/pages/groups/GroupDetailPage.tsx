@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Plus, Trash2, UserPlus, Pencil, BarChart2, PlayCircle, CheckSquare, Square, Loader2, Trophy, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, UserPlus, Pencil, BarChart2, PlayCircle, CheckSquare, Square, Loader2, Trophy, MessageSquare, KeyRound, Eye, EyeOff } from 'lucide-react';
 import {
   getGroup, getGroupEnrollments, createEnrollment, deleteEnrollment,
   getGroupAttendanceSummary, getGroupAvgExamScore,
@@ -10,6 +10,7 @@ import { getLessonsByGroup, createLesson, updateLesson, deleteLesson } from '../
 import { getStudents } from '../../api/students';
 import { getExamsByGroup, createExam, updateExam, deleteExam } from '../../api/exams';
 import { listTests, startSession, getGroupSessions, type QuizTestResponse, type QuizSessionResponse } from '../../api/quiz';
+import { resetStudentPassword } from '../../api/auth';
 import { useAuth } from '../../contexts/AuthContext';
 import type { LessonCreateRequest, ExamCreateRequest, EnrollmentCreateRequest } from '../../types';
 import Modal from '../../components/ui/Modal';
@@ -54,6 +55,11 @@ export default function GroupDetailPage() {
   const [showStartQuiz, setShowStartQuiz] = useState(false);
   const [selectedTestId, setSelectedTestId] = useState('');
   const [presentStudentIds, setPresentStudentIds] = useState<Set<string>>(new Set());
+
+  // Student password reset
+  const [pwdStudent, setPwdStudent] = useState<{ id: string; name: string } | null>(null);
+  const [pwdValue, setPwdValue] = useState('');
+  const [showPwd, setShowPwd] = useState(false);
 
   const { data: group } = useQuery({ queryKey: ['group', groupId], queryFn: () => getGroup(groupId) });
   const { data: enrollments = [], isLoading: loadingEnrollments } = useQuery({
@@ -162,6 +168,17 @@ export default function GroupDetailPage() {
     onError: (err: any) => showError(err?.response?.data?.message ?? "Xatolik yuz berdi"),
   });
 
+  const resetPwdMutation = useMutation({
+    mutationFn: () => resetStudentPassword(pwdStudent!.id, pwdValue),
+    onSuccess: (data) => {
+      showSuccess(`✅ Parol o'zgartirildi! Login: ${data.username}`);
+      setPwdStudent(null);
+      setPwdValue('');
+      setShowPwd(false);
+    },
+    onError: (err: any) => showError(err?.response?.data?.message ?? "Akkaunti topilmadi. Avval /users da yarating."),
+  });
+
   const toggleStudent = (studentId: string) => {
     setPresentStudentIds(prev => {
       const next = new Set(prev);
@@ -263,12 +280,21 @@ export default function GroupDetailPage() {
                   {
                     key: 'actions', header: '',
                     render: (e) => (
-                      <button
-                        onClick={() => { if (window.confirm("Bu talabani guruhdan chiqarasizmi?")) removeEnrollmentMutation.mutate(e.id); }}
-                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
-                      >
-                        <Trash2 size={15} />
-                      </button>
+                      <div className="flex items-center gap-1 justify-end">
+                        <button
+                          onClick={() => { setPwdStudent({ id: e.studentId, name: e.studentName ?? 'Talaba' }); setPwdValue(''); setShowPwd(false); }}
+                          className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition font-medium"
+                          title="Login parolini o'rnatish"
+                        >
+                          <KeyRound size={13} /> Parol
+                        </button>
+                        <button
+                          onClick={() => { if (window.confirm("Bu talabani guruhdan chiqarasizmi?")) removeEnrollmentMutation.mutate(e.id); }}
+                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
                     ),
                   },
                 ]}
@@ -716,6 +742,58 @@ export default function GroupDetailPage() {
               {startQuizMutation.isPending
                 ? <><Loader2 size={14} className="animate-spin" /> Boshlanmoqda...</>
                 : <><PlayCircle size={14} /> Testni Boshlash</>
+              }
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Student Password Reset Modal */}
+      <Modal
+        isOpen={!!pwdStudent}
+        onClose={() => { setPwdStudent(null); setPwdValue(''); setShowPwd(false); }}
+        title={`Parol o'rnatish — ${pwdStudent?.name ?? ''}`}
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-500">
+            Bu talabaning login parolini yangilaysiz. Talabaning akkaunt bo'lishi shart.
+          </p>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Yangi parol</label>
+            <div className="relative">
+              <input
+                type={showPwd ? 'text' : 'password'}
+                value={pwdValue}
+                onChange={(e) => setPwdValue(e.target.value)}
+                placeholder="Kamida 4 ta belgi"
+                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                onKeyDown={(e) => { if (e.key === 'Enter' && pwdValue.length >= 4) resetPwdMutation.mutate(); }}
+                autoFocus
+              />
+              <button
+                type="button"
+                onClick={() => setShowPwd(!showPwd)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                {showPwd ? <EyeOff size={15} /> : <Eye size={15} />}
+              </button>
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 pt-1">
+            <button
+              onClick={() => { setPwdStudent(null); setPwdValue(''); setShowPwd(false); }}
+              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 transition"
+            >
+              Bekor
+            </button>
+            <button
+              onClick={() => resetPwdMutation.mutate()}
+              disabled={pwdValue.length < 4 || resetPwdMutation.isPending}
+              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-medium py-2 px-5 rounded-lg text-sm transition"
+            >
+              {resetPwdMutation.isPending
+                ? <><Loader2 size={14} className="animate-spin" /> Saqlanmoqda...</>
+                : <><KeyRound size={14} /> Parolni Saqlash</>
               }
             </button>
           </div>
