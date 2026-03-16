@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import ProtectedRoute from './components/layout/ProtectedRoute';
 import MainLayout from './components/layout/MainLayout';
 
@@ -32,6 +33,19 @@ import ChatsPage from './pages/chat/ChatsPage';
 import AnalyticsPage from './pages/analytics/AnalyticsPage';
 import PaymentsPage from './pages/payments/PaymentsPage';
 import CalendarPage from './pages/calendar/CalendarPage';
+import DictionaryPage from './pages/student/DictionaryPage';
+import WritingPage from './pages/student/WritingPage';
+import VocabularyPage from './pages/student/VocabularyPage';
+import MyGroupPage from './pages/student/MyGroupPage';
+import SchedulePage from './pages/student/SchedulePage';
+import AttendanceHistoryPage from './pages/student/AttendanceHistoryPage';
+import PaymentHistoryPage from './pages/student/PaymentHistoryPage';
+import LibraryPage from './pages/student/LibraryPage';
+import LeaderboardPage from './pages/student/LeaderboardPage';
+import SupportPage from './pages/student/SupportPage';
+import SupportAdminPage from './pages/support/SupportAdminPage';
+import VideoLessonsPage from './pages/student/VideoLessonsPage';
+import ResourcesPage from './pages/resources/ResourcesPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -45,6 +59,7 @@ const queryClient = new QueryClient({
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
       <AuthProvider>
         <Toaster
           position="top-right"
@@ -84,6 +99,19 @@ export default function App() {
                 <Route path="/quiz/take/:sessionId" element={<TakeQuizPage />} />
                 <Route path="/quiz/results/:sessionId" element={<QuizResultsPage />} />
                 <Route path="/chats" element={<ChatsPage />} />
+                <Route path="/my-group" element={<MyGroupPage />} />
+                <Route path="/dictionary" element={<DictionaryPage />} />
+                <Route path="/writing" element={<WritingPage />} />
+                <Route path="/vocabulary" element={<VocabularyPage />} />
+                <Route path="/schedule" element={<SchedulePage />} />
+                <Route path="/my-attendance" element={<AttendanceHistoryPage />} />
+                <Route path="/my-payments" element={<PaymentHistoryPage />} />
+                <Route path="/library" element={<LibraryPage />} />
+                <Route path="/leaderboard" element={<LeaderboardPage />} />
+                <Route path="/videos" element={<VideoLessonsPage />} />
+                <Route path="/support" element={<SupportPage />} />
+                <Route path="/resources-manage" element={<ResourcesPage />} />
+                <Route path="/support-admin" element={<SupportAdminPage />} />
                 <Route path="/chat/group/:groupId" element={<GroupChatPage />} />
               </Route>
             </Route>
@@ -92,6 +120,7 @@ export default function App() {
           </Routes>
         </BrowserRouter>
       </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

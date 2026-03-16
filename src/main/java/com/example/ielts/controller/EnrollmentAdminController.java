@@ -38,6 +38,13 @@ public class EnrollmentAdminController {
         return service.listByStudent(studentId);
     }
 
+    // Talaba o'z guruhlarini ko'rishi uchun
+    @PreAuthorize("isAuthenticated()")
+    @GetMapping("/my/{studentId}")
+    public List<EnrollmentResponse> myEnrollments(@PathVariable UUID studentId) {
+        return service.listByStudent(studentId);
+    }
+
     @PreAuthorize("hasAnyRole('ADMIN','RECEPTION')")
     @DeleteMapping("/{id}")
     public void delete(@PathVariable UUID id) {

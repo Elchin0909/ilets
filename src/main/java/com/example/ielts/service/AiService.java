@@ -172,6 +172,39 @@ public class AiService {
         return callAnthropic(systemPrompt, message);
     }
 
+    // ── 4. AI Lugat (Dictionary) ───────────────────────────────────────────────
+
+    public com.example.ielts.dto.DictionaryResponse dictionary(String word, String langPair) {
+        checkApiKey();
+
+        if (word == null || word.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "So'z kiritilmagan.");
+        }
+
+        // langPair: "uz-en", "en-uz", "ru-en", "en-ru"
+        String from, to;
+        switch (langPair != null ? langPair : "en-uz") {
+            case "uz-en" -> { from = "O'zbek"; to = "Ingliz"; }
+            case "ru-en" -> { from = "Rus"; to = "Ingliz"; }
+            case "en-ru" -> { from = "Ingliz"; to = "Rus"; }
+            default -> { from = "Ingliz"; to = "O'zbek"; }
+        }
+
+        String systemPrompt = """
+                Siz professional lugat (dictionary) xizmati siz. Berilgan so'zni %s tilidan %s tiliga tarjima qiling.
+
+                Faqat JSON formatida javob bering, boshqa matn yozmang:
+                {"word":"%s so'z","translation":"tarjima","pronunciation":"transkripsiya (IPA yoki oddiy)","partOfSpeech":"so'z turkumi","examples":["1-misol jumlasi","2-misol jumlasi"],"synonyms":["sinonim1","sinonim2"]}
+
+                examples — har ikkala tilda namuna jumlalar bering (2-3 ta).
+                synonyms — kamida 2 ta sinonim bering.
+                pronunciation — agar inglizcha so'z bo'lsa IPA transkripsiya, boshqa tillar uchun oddiy o'qilishi.
+                """.formatted(from, to, from);
+
+        String raw = callAnthropic(systemPrompt, "So'z: " + word.trim());
+        return parseJson(raw, com.example.ielts.dto.DictionaryResponse.class);
+    }
+
     // ── Private helpers ────────────────────────────────────────────────────────
 
     private void checkApiKey() {

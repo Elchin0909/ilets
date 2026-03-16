@@ -49,10 +49,24 @@ public class AttendanceController {
         return service.byStudent(studentId);
     }
 
+    // Student's own attendance (STUDENT can see own data)
+    @PreAuthorize("isAuthenticated()")
+    @GetMapping("/my/{studentId}")
+    public List<AttendanceResponse> myAttendance(@PathVariable UUID studentId) {
+        return service.byStudent(studentId);
+    }
+
     // Student attendance percent (ADMIN/RECEPTION)
     @PreAuthorize("hasAnyRole('ADMIN','RECEPTION')")
     @GetMapping("/student/{studentId}/percent")
     public double studentPercent(@PathVariable UUID studentId) {
+        return service.studentPercent(studentId);
+    }
+
+    // Student's own attendance percent
+    @PreAuthorize("isAuthenticated()")
+    @GetMapping("/my/{studentId}/percent")
+    public double myPercent(@PathVariable UUID studentId) {
         return service.studentPercent(studentId);
     }
 

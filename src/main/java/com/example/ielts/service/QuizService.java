@@ -260,6 +260,23 @@ public class QuizService {
                 .toList();
     }
 
+    public List<QuizResultResponse> getStudentResults(UUID studentId) {
+        List<QuizStudentResult> results = resultRepo.findByStudentId(studentId);
+        return results.stream()
+                .map(r -> {
+                    QuizResultResponse resp = toResultResponse(r, r.getStudentId());
+                    sessionRepo.findById(r.getSessionId()).ifPresent(session -> {
+                        testRepo.findById(session.getTestId()).ifPresent(test -> {
+                            resp.testTitle = test.getTitle();
+                            resp.testLevel = test.getLevel();
+                        });
+                    });
+                    return resp;
+                })
+                .sorted(Comparator.comparing((QuizResultResponse rr) -> rr.submittedAt).reversed())
+                .toList();
+    }
+
     public List<QuizSessionResponse> getGroupSessions(UUID groupId) {
         return sessionRepo.findByGroupId(groupId).stream()
                 .map(s -> {

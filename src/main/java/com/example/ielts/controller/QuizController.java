@@ -123,4 +123,10 @@ public class QuizController {
     public List<QuizSessionResponse> getGroupSessions(@PathVariable UUID groupId) {
         return quizService.getGroupSessions(groupId);
     }
+
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    @GetMapping("/results/by-student/{studentId}")
+    public List<QuizResultResponse> getStudentResults(@PathVariable UUID studentId) {
+        return quizService.getStudentResults(studentId);
+    }
 }

@@ -15,9 +15,19 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const handlePhoneChange = (val: string) => {
+    // Only allow digits, max 9
+    const digits = val.replace(/\D/g, '').slice(0, 9);
+    setForm({ ...form, phone: digits });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    if (form.phone.length !== 9) {
+      setError('Telefon raqam 9 ta raqamdan iborat bo\'lishi kerak');
+      return;
+    }
     if (form.password !== form.confirmPassword) {
       setError('Parollar mos kelmadi');
       return;
@@ -26,7 +36,7 @@ export default function RegisterPage() {
     try {
       await registerStudent({
         fullName: form.fullName,
-        phone: form.phone,
+        phone: '+998' + form.phone,
         email: form.email || undefined,
         username: form.username,
         password: form.password,
@@ -76,14 +86,23 @@ export default function RegisterPage() {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Telefon *
             </label>
-            <input
-              required
-              type="tel"
-              value={form.phone}
-              onChange={(e) => setForm({ ...form, phone: e.target.value })}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-              placeholder="+998 90 000 00 00"
-            />
+            <div className="flex">
+              <span className="inline-flex items-center px-3 bg-gray-100 border border-r-0 border-gray-300 rounded-l-lg text-gray-600 text-sm font-medium select-none">
+                +998
+              </span>
+              <input
+                required
+                type="tel"
+                value={form.phone}
+                onChange={(e) => handlePhoneChange(e.target.value)}
+                maxLength={9}
+                className="flex-1 px-4 py-2.5 border border-gray-300 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+                placeholder="XX XXX XX XX"
+              />
+            </div>
+            {form.phone.length > 0 && form.phone.length < 9 && (
+              <p className="text-xs text-orange-500 mt-1">{9 - form.phone.length} ta raqam qoldi</p>
+            )}
           </div>
 
           <div>

@@ -4,19 +4,20 @@ import {
   Users, GraduationCap, Layers, BookOpen, TrendingUp,
   ArrowRight, BotMessageSquare, X, Send, Loader2,
   AlertTriangle, CalendarCheck, CalendarDays, ClipboardList,
+  CreditCard, Phone,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getStudents } from '../../api/students';
 import { getTeachers } from '../../api/teachers';
 import { getGroups } from '../../api/groups';
 import { getCourses } from '../../api/courses';
+import { getDebtors, type Debtor } from '../../api/payments';
 import { useAuth } from '../../contexts/AuthContext';
 import { aiChat } from '../../api/ai';
 import { getLowAttendanceStudents, type LowAttendanceStudent } from '../../api/attendance';
 import { listTests } from '../../api/quiz';
 import api from '../../api/axios';
 
-// Backend Lesson entity (raw from /api/lessons/today)
 interface LessonRaw {
   lessonId: string;
   groupId: string;
@@ -37,14 +38,14 @@ function StatCard({ label, value, icon: Icon, color, bg, to }: StatCardProps) {
   return (
     <Link
       to={to}
-      className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex items-center gap-4 hover:shadow-md hover:border-gray-200 transition-all group"
+      className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex items-center gap-4 hover:shadow-md hover:border-gray-200 dark:hover:border-gray-600 transition-all group"
     >
       <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${bg} flex-shrink-0`}>
         <Icon size={24} className={color} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-gray-500 text-sm">{label}</p>
-        <p className="text-3xl font-bold text-gray-900 leading-tight">{value}</p>
+        <p className="text-gray-500 dark:text-gray-400 text-sm">{label}</p>
+        <p className="text-3xl font-bold text-gray-900 dark:text-white leading-tight">{value}</p>
       </div>
       <ArrowRight size={16} className="text-gray-300 group-hover:text-gray-500 transition-colors flex-shrink-0" />
     </Link>
@@ -53,11 +54,11 @@ function StatCard({ label, value, icon: Icon, color, bg, to }: StatCardProps) {
 
 function SkeletonCard() {
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex items-center gap-4 animate-pulse">
-      <div className="w-14 h-14 rounded-2xl bg-gray-100 flex-shrink-0" />
+    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex items-center gap-4 animate-pulse">
+      <div className="w-14 h-14 rounded-2xl bg-gray-100 dark:bg-gray-700 flex-shrink-0" />
       <div className="flex-1">
-        <div className="h-4 bg-gray-100 rounded w-24 mb-2" />
-        <div className="h-8 bg-gray-100 rounded w-16" />
+        <div className="h-4 bg-gray-100 dark:bg-gray-700 rounded w-24 mb-2" />
+        <div className="h-8 bg-gray-100 dark:bg-gray-700 rounded w-16" />
       </div>
     </div>
   );
@@ -71,7 +72,7 @@ interface ChatMessage {
 function AiChatWidget() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { role: 'assistant', text: "Salom! Men IELTS markazi yordamchisiman. Savollaringizga javob berishga tayyorman 🎓" },
+    { role: 'assistant', text: "Salom! Men IELTS markazi yordamchisiman. Savollaringizga javob berishga tayyorman." },
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -91,7 +92,7 @@ function AiChatWidget() {
       const reply = await aiChat(msg);
       setMessages((prev) => [...prev, { role: 'assistant', text: reply }]);
     } catch {
-      setMessages((prev) => [...prev, { role: 'assistant', text: "Kechirasiz, xatolik yuz berdi. Qaytadan urinib ko'ring." }]);
+      setMessages((prev) => [...prev, { role: 'assistant', text: "Kechirasiz, xatolik yuz berdi." }]);
     } finally {
       setLoading(false);
     }
@@ -109,7 +110,7 @@ function AiChatWidget() {
 
       {open && (
         <div
-          className="fixed bottom-24 right-6 z-50 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden"
+          className="fixed bottom-24 right-6 z-50 w-80 sm:w-96 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden"
           style={{ maxHeight: '70vh' }}
         >
           <div className="bg-indigo-600 px-4 py-3 flex items-center gap-3">
@@ -125,13 +126,13 @@ function AiChatWidget() {
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 bg-gray-50">
+          <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 bg-gray-50 dark:bg-gray-900">
             {messages.map((m, i) => (
               <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[80%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${
                   m.role === 'user'
                     ? 'bg-indigo-600 text-white rounded-br-sm'
-                    : 'bg-white text-gray-800 border border-gray-100 shadow-sm rounded-bl-sm'
+                    : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border border-gray-100 dark:border-gray-700 shadow-sm rounded-bl-sm'
                 }`}>
                   {m.text}
                 </div>
@@ -139,7 +140,7 @@ function AiChatWidget() {
             ))}
             {loading && (
               <div className="flex justify-start">
-                <div className="bg-white border border-gray-100 rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
+                <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
                   <Loader2 size={16} className="animate-spin text-indigo-400" />
                 </div>
               </div>
@@ -147,18 +148,18 @@ function AiChatWidget() {
             <div ref={bottomRef} />
           </div>
 
-          <div className="px-3 py-3 border-t border-gray-100 bg-white flex gap-2">
+          <div className="px-3 py-3 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 flex gap-2">
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && send()}
               placeholder="Savol yozing..."
-              className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 placeholder:text-gray-300"
+              className="flex-1 text-sm border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white dark:bg-gray-700 dark:text-white placeholder:text-gray-300"
             />
             <button
               onClick={send}
               disabled={!input.trim() || loading}
-              className="w-9 h-9 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-100 text-white rounded-xl flex items-center justify-center transition flex-shrink-0"
+              className="w-9 h-9 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-200 dark:disabled:bg-gray-700 text-white rounded-xl flex items-center justify-center transition flex-shrink-0"
             >
               <Send size={15} />
             </button>
@@ -169,7 +170,6 @@ function AiChatWidget() {
   );
 }
 
-// Bugungi darslar widget
 function TodayLessonsWidget({ groups }: { groups: Array<{ id: string; name: string }> }) {
   const { data: todayLessons = [], isLoading } = useQuery({
     queryKey: ['lessons-today'],
@@ -177,57 +177,37 @@ function TodayLessonsWidget({ groups }: { groups: Array<{ id: string; name: stri
     staleTime: 1000 * 60 * 5,
   });
 
-  if (isLoading) {
-    return (
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
-        <div className="px-6 py-4 border-b border-gray-100">
-          <h2 className="font-semibold text-gray-900 flex items-center gap-2">
-            <CalendarCheck size={18} className="text-blue-500" /> Bugungi Darslar
-          </h2>
-        </div>
-        <div className="p-6 space-y-3">
-          {[1, 2].map(i => <div key={i} className="h-10 bg-gray-50 rounded-lg animate-pulse" />)}
-        </div>
-      </div>
-    );
-  }
-
   const groupMap: Record<string, string> = {};
   for (const g of groups) groupMap[g.id] = g.name;
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
-      <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-        <h2 className="font-semibold text-gray-900 flex items-center gap-2">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+      <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+        <h2 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
           <CalendarCheck size={18} className="text-blue-500" /> Bugungi Darslar
         </h2>
-        <Link to="/calendar" className="text-sm text-indigo-600 hover:underline flex items-center gap-1">
+        <Link to="/calendar" className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1">
           <CalendarDays size={14} /> Kalendar
         </Link>
       </div>
-      {todayLessons.length === 0 ? (
-        <div className="py-10 text-center text-gray-400 text-sm">
-          Bugun dars yo'q
+      {isLoading ? (
+        <div className="p-6 space-y-3">
+          {[1, 2].map(i => <div key={i} className="h-10 bg-gray-50 dark:bg-gray-700 rounded-lg animate-pulse" />)}
         </div>
+      ) : todayLessons.length === 0 ? (
+        <div className="py-10 text-center text-gray-400 text-sm">Bugun dars yo'q</div>
       ) : (
-        <div className="divide-y divide-gray-50">
+        <div className="divide-y divide-gray-50 dark:divide-gray-700">
           {todayLessons.slice(0, 6).map((lesson: LessonRaw) => (
-            <Link
-              key={lesson.lessonId}
-              to={`/groups/${lesson.groupId}`}
-              className="flex items-center justify-between px-6 py-3 hover:bg-gray-50 transition group"
-            >
+            <Link key={lesson.lessonId} to={`/groups/${lesson.groupId}`}
+              className="flex items-center justify-between px-6 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition group">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <CalendarCheck size={14} className="text-blue-600" />
+                <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <CalendarCheck size={14} className="text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
-                  <p className="font-medium text-gray-800 text-sm">
-                    {groupMap[lesson.groupId] ?? 'Guruh'}
-                  </p>
-                  {lesson.topic && (
-                    <p className="text-xs text-gray-400 truncate max-w-[180px]">{lesson.topic}</p>
-                  )}
+                  <p className="font-medium text-gray-800 dark:text-gray-200 text-sm">{groupMap[lesson.groupId] ?? 'Guruh'}</p>
+                  {lesson.topic && <p className="text-xs text-gray-400 truncate max-w-[180px]">{lesson.topic}</p>}
                 </div>
               </div>
               <ArrowRight size={14} className="text-gray-300 group-hover:text-gray-500 transition" />
@@ -239,7 +219,6 @@ function TodayLessonsWidget({ groups }: { groups: Array<{ id: string; name: stri
   );
 }
 
-// Kam davomat ogohlantirishlari
 function LowAttendanceWidget() {
   const { data: lowStudents = [], isLoading } = useQuery({
     queryKey: ['low-attendance'],
@@ -250,50 +229,88 @@ function LowAttendanceWidget() {
   if (isLoading || lowStudents.length === 0) return null;
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-red-100">
-      <div className="px-6 py-4 border-b border-red-100 flex items-center justify-between">
-        <h2 className="font-semibold text-red-700 flex items-center gap-2">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-red-100 dark:border-red-900/30">
+      <div className="px-6 py-4 border-b border-red-100 dark:border-red-900/30 flex items-center justify-between">
+        <h2 className="font-semibold text-red-700 dark:text-red-400 flex items-center gap-2">
           <AlertTriangle size={18} className="text-red-500" />
-          Kam Davomat ({lowStudents.length} ta talaba)
+          Kam Davomat ({lowStudents.length})
         </h2>
-        <span className="text-xs text-red-400 bg-red-50 px-2 py-0.5 rounded-full">75% dan past</span>
+        <span className="text-xs text-red-400 bg-red-50 dark:bg-red-900/20 px-2 py-0.5 rounded-full">75% dan past</span>
       </div>
-      <div className="divide-y divide-gray-50">
+      <div className="divide-y divide-gray-50 dark:divide-gray-700">
         {lowStudents.slice(0, 5).map((s: LowAttendanceStudent) => (
-          <Link
-            key={s.studentId}
-            to={`/students/${s.studentId}`}
-            className="flex items-center justify-between px-6 py-3 hover:bg-red-50/50 transition group"
-          >
+          <Link key={s.studentId} to={`/students/${s.studentId}`}
+            className="flex items-center justify-between px-6 py-3 hover:bg-red-50/50 dark:hover:bg-red-900/10 transition">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center text-sm font-bold text-red-600 flex-shrink-0">
+              <div className="w-8 h-8 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center text-sm font-bold text-red-600 dark:text-red-400 flex-shrink-0">
                 {s.fullName.charAt(0)}
               </div>
               <div>
-                <p className="font-medium text-gray-800 text-sm">{s.fullName}</p>
-                <p className="text-xs text-gray-400">
-                  {s.presentCount}/{s.totalLessons} dars
-                </p>
+                <p className="font-medium text-gray-800 dark:text-gray-200 text-sm">{s.fullName}</p>
+                <p className="text-xs text-gray-400">{s.presentCount}/{s.totalLessons} dars</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-red-500 rounded-full"
-                  style={{ width: `${s.attendancePercent}%` }}
-                />
+              <div className="w-16 h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div className="h-full bg-red-500 rounded-full" style={{ width: `${s.attendancePercent}%` }} />
               </div>
-              <span className="text-sm font-semibold text-red-600 w-12 text-right">
+              <span className="text-sm font-semibold text-red-600 dark:text-red-400 w-12 text-right">
                 {s.attendancePercent.toFixed(0)}%
               </span>
             </div>
           </Link>
         ))}
       </div>
-      {lowStudents.length > 5 && (
-        <div className="px-6 py-3 border-t border-gray-50">
-          <Link to="/students" className="text-sm text-red-600 hover:underline">
-            + {lowStudents.length - 5} ta boshqa talaba →
+    </div>
+  );
+}
+
+function DebtorsWidget() {
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const { data: debtors = [], isLoading } = useQuery<Debtor[]>({
+    queryKey: ['debtors', currentMonth],
+    queryFn: () => getDebtors(currentMonth),
+    staleTime: 1000 * 60 * 10,
+  });
+
+  if (isLoading || debtors.length === 0) return null;
+
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-amber-100 dark:border-amber-900/30">
+      <div className="px-6 py-4 border-b border-amber-100 dark:border-amber-900/30 flex items-center justify-between">
+        <h2 className="font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-2">
+          <CreditCard size={18} className="text-amber-500" />
+          Qarzdorlar ({debtors.length})
+        </h2>
+        <span className="text-xs text-amber-500 bg-amber-50 dark:bg-amber-900/20 px-2 py-0.5 rounded-full">
+          {currentMonth}
+        </span>
+      </div>
+      <div className="divide-y divide-gray-50 dark:divide-gray-700">
+        {debtors.slice(0, 8).map((d) => (
+          <Link key={d.studentId} to={`/students/${d.studentId}`}
+            className="flex items-center justify-between px-6 py-3 hover:bg-amber-50/50 dark:hover:bg-amber-900/10 transition">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center text-sm font-bold text-amber-600 dark:text-amber-400 flex-shrink-0">
+                {d.fullName.charAt(0)}
+              </div>
+              <div>
+                <p className="font-medium text-gray-800 dark:text-gray-200 text-sm">{d.fullName}</p>
+                <p className="text-xs text-gray-400 flex items-center gap-1">
+                  <Phone size={10} /> {d.phone}
+                </p>
+              </div>
+            </div>
+            <span className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-2 py-0.5 rounded-full">
+              {d.groupCount} guruh
+            </span>
+          </Link>
+        ))}
+      </div>
+      {debtors.length > 8 && (
+        <div className="px-6 py-3 border-t border-gray-50 dark:border-gray-700">
+          <Link to="/payments" className="text-sm text-amber-600 dark:text-amber-400 hover:underline">
+            + {debtors.length - 8} ta boshqa
           </Link>
         </div>
       )}
@@ -304,40 +321,19 @@ function LowAttendanceWidget() {
 export default function DashboardPage() {
   const { user } = useAuth();
 
-  const { data: students = [], isLoading: loadingStudents } = useQuery({
-    queryKey: ['students'],
-    queryFn: getStudents,
-  });
-  const { data: teachers = [], isLoading: loadingTeachers } = useQuery({
-    queryKey: ['teachers'],
-    queryFn: getTeachers,
-  });
-  const { data: groups = [], isLoading: loadingGroups } = useQuery({
-    queryKey: ['groups'],
-    queryFn: getGroups,
-  });
-  const { data: courses = [], isLoading: loadingCourses } = useQuery({
-    queryKey: ['courses'],
-    queryFn: getCourses,
-  });
+  const { data: students = [], isLoading: loadingStudents } = useQuery({ queryKey: ['students'], queryFn: getStudents });
+  const { data: teachers = [], isLoading: loadingTeachers } = useQuery({ queryKey: ['teachers'], queryFn: getTeachers });
+  const { data: groups = [], isLoading: loadingGroups } = useQuery({ queryKey: ['groups'], queryFn: getGroups });
+  const { data: courses = [], isLoading: loadingCourses } = useQuery({ queryKey: ['courses'], queryFn: getCourses });
 
   const isTeacher = user?.role === 'TEACHER';
   const isAdmin = user?.role === 'ADMIN';
   const isAdminOrReception = user?.role === 'ADMIN' || user?.role === 'RECEPTION';
 
-  const { data: allTests = [] } = useQuery({
-    queryKey: ['quizTests'],
-    queryFn: listTests,
-    enabled: isAdmin || isTeacher,
-  });
+  const { data: allTests = [] } = useQuery({ queryKey: ['quizTests'], queryFn: listTests, enabled: isAdmin || isTeacher });
   const pendingTests = allTests.filter((t: any) => !t.approved);
-  const myPendingTests = isTeacher
-    ? pendingTests.filter((t: any) => t.teacherId === user?.teacherId)
-    : pendingTests;
-
-  const myGroups = isTeacher
-    ? groups.filter((g) => g.teacherId === user?.teacherId)
-    : groups;
+  const myPendingTests = isTeacher ? pendingTests.filter((t: any) => t.teacherId === user?.teacherId) : pendingTests;
+  const myGroups = isTeacher ? groups.filter((g) => g.teacherId === user?.teacherId) : groups;
 
   const greeting = () => {
     const h = new Date().getHours();
@@ -346,133 +342,105 @@ export default function DashboardPage() {
     return 'Xayrli kech';
   };
 
-  // groups as simple {id, name} map for TodayLessonsWidget
   const groupList = groups.map(g => ({ id: String(g.id), name: g.name }));
 
   return (
     <div>
-      {/* Welcome */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">
-          {greeting()}, <span className="text-indigo-600">{user?.username}</span> 👋
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          {greeting()}, <span className="text-indigo-600 dark:text-indigo-400">{user?.username}</span>
         </h1>
-        <p className="text-gray-500 mt-1 text-sm">IELTS Centre boshqaruv tizimiga xush kelibsiz</p>
+        <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">IELTS Centre boshqaruv tizimiga xush kelibsiz</p>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {loadingStudents ? <SkeletonCard /> : (
-          <StatCard label="Jami Talabalar" value={students.length} icon={Users}
-            color="text-blue-600" bg="bg-blue-50" to="/students" />
+          <StatCard label="Jami Talabalar" value={students.length} icon={Users} color="text-blue-600" bg="bg-blue-50 dark:bg-blue-900/20" to="/students" />
         )}
-        {!isTeacher && (
-          loadingTeachers ? <SkeletonCard /> : (
-            <StatCard label="Jami O'qituvchilar" value={teachers.length} icon={GraduationCap}
-              color="text-purple-600" bg="bg-purple-50" to="/teachers" />
-          )
-        )}
+        {!isTeacher && (loadingTeachers ? <SkeletonCard /> : (
+          <StatCard label="O'qituvchilar" value={teachers.length} icon={GraduationCap} color="text-purple-600" bg="bg-purple-50 dark:bg-purple-900/20" to="/teachers" />
+        ))}
         {loadingGroups ? <SkeletonCard /> : (
-          <StatCard
-            label={isTeacher ? 'Mening Guruhlarim' : 'Faol Guruhlar'}
-            value={myGroups.length}
-            icon={Layers}
-            color="text-green-600" bg="bg-green-50" to="/groups"
-          />
+          <StatCard label={isTeacher ? 'Guruhlarim' : 'Guruhlar'} value={myGroups.length} icon={Layers} color="text-green-600" bg="bg-green-50 dark:bg-green-900/20" to="/groups" />
         )}
-        {!isTeacher && (
-          loadingCourses ? <SkeletonCard /> : (
-            <StatCard label="Kurslar" value={courses.length} icon={BookOpen}
-              color="text-orange-600" bg="bg-orange-50" to="/courses" />
-          )
-        )}
+        {!isTeacher && (loadingCourses ? <SkeletonCard /> : (
+          <StatCard label="Kurslar" value={courses.length} icon={BookOpen} color="text-orange-600" bg="bg-orange-50 dark:bg-orange-900/20" to="/courses" />
+        ))}
         {isTeacher && (
-          <StatCard label="Barcha Guruhlar" value={groups.length} icon={TrendingUp}
-            color="text-indigo-600" bg="bg-indigo-50" to="/groups" />
+          <StatCard label="Barcha Guruhlar" value={groups.length} icon={TrendingUp} color="text-indigo-600" bg="bg-indigo-50 dark:bg-indigo-900/20" to="/groups" />
         )}
       </div>
 
-      {/* Low attendance alert (Admin/Reception only) */}
-      {isAdminOrReception && <div className="mb-6"><LowAttendanceWidget /></div>}
+      {/* Alerts: Low attendance + Debtors */}
+      {isAdminOrReception && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <LowAttendanceWidget />
+          <DebtorsWidget />
+        </div>
+      )}
 
-      {/* Pending quiz approvals banner (Admin) */}
+      {/* Pending quiz banners */}
       {isAdmin && pendingTests.length > 0 && (
-        <div className="mb-6 bg-amber-50 border border-amber-200 rounded-2xl px-6 py-4 flex items-center justify-between gap-4">
+        <div className="mb-6 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl px-6 py-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/30 rounded-xl flex items-center justify-center flex-shrink-0">
               <ClipboardList size={18} className="text-amber-600" />
             </div>
             <div>
-              <p className="font-semibold text-amber-800 text-sm">
-                {pendingTests.length} ta test tasdiqlash kutmoqda
-              </p>
-              <p className="text-amber-600 text-xs mt-0.5">
-                O'qituvchilar tomonidan yaratilgan testlar sizni kutmoqda
-              </p>
+              <p className="font-semibold text-amber-800 dark:text-amber-300 text-sm">{pendingTests.length} ta test tasdiqlash kutmoqda</p>
+              <p className="text-amber-600 dark:text-amber-400 text-xs mt-0.5">O'qituvchilar tomonidan yaratilgan</p>
             </div>
           </div>
-          <Link
-            to="/quiz/tests"
-            className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition whitespace-nowrap"
-          >
+          <Link to="/quiz/tests" className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition whitespace-nowrap">
             Ko'rish <ArrowRight size={14} />
           </Link>
         </div>
       )}
 
-      {/* Pending quiz tests banner (Teacher) */}
       {isTeacher && myPendingTests.length > 0 && (
-        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-2xl px-6 py-4 flex items-center justify-between gap-4">
+        <div className="mb-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl px-6 py-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center flex-shrink-0">
               <ClipboardList size={18} className="text-blue-600" />
             </div>
             <div>
-              <p className="font-semibold text-blue-800 text-sm">
-                {myPendingTests.length} ta testingiz tasdiq kutmoqda
-              </p>
-              <p className="text-blue-600 text-xs mt-0.5">Admin tasdiqlaganidan keyin guruhlarga berish mumkin</p>
+              <p className="font-semibold text-blue-800 dark:text-blue-300 text-sm">{myPendingTests.length} ta testingiz tasdiq kutmoqda</p>
+              <p className="text-blue-600 dark:text-blue-400 text-xs mt-0.5">Admin tasdiqlaganidan keyin guruhlarga berish mumkin</p>
             </div>
           </div>
-          <Link
-            to="/quiz/tests"
-            className="flex items-center gap-1.5 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition whitespace-nowrap"
-          >
+          <Link to="/quiz/tests" className="flex items-center gap-1.5 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition whitespace-nowrap">
             Test Banki <ArrowRight size={14} />
           </Link>
         </div>
       )}
 
-      {/* Main grid: Today's lessons + My groups */}
+      {/* Main grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {/* Bugungi darslar */}
         <TodayLessonsWidget groups={groupList} />
 
-        {/* My groups — teacher view */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
-          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h2 className="font-semibold text-gray-900 flex items-center gap-2">
-              <Layers size={18} className="text-green-500" />
-              {isTeacher ? 'Mening Guruhlarim' : 'Guruhlar'}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+          <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+            <h2 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              <Layers size={18} className="text-green-500" /> {isTeacher ? 'Guruhlarim' : 'Guruhlar'}
             </h2>
-            <Link to="/groups" className="text-sm text-indigo-600 hover:underline">Barchasi →</Link>
+            <Link to="/groups" className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">Barchasi</Link>
           </div>
           {loadingGroups ? (
-            <div className="p-6 space-y-3">
-              {[1, 2, 3].map((i) => <div key={i} className="h-10 bg-gray-50 rounded-lg animate-pulse" />)}
-            </div>
+            <div className="p-6 space-y-3">{[1, 2, 3].map(i => <div key={i} className="h-10 bg-gray-50 dark:bg-gray-700 rounded-lg animate-pulse" />)}</div>
           ) : myGroups.length === 0 ? (
             <div className="py-12 text-center text-gray-400 text-sm">Guruh yo'q</div>
           ) : (
-            <div className="divide-y divide-gray-50">
+            <div className="divide-y divide-gray-50 dark:divide-gray-700">
               {myGroups.slice(0, 5).map((g) => (
                 <Link key={g.id} to={`/groups/${g.id}`}
-                  className="flex items-center justify-between px-6 py-3.5 hover:bg-gray-50 transition group">
+                  className="flex items-center justify-between px-6 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition group">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                      <Layers size={14} className="text-green-600" />
+                    <div className="w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+                      <Layers size={14} className="text-green-600 dark:text-green-400" />
                     </div>
                     <div>
-                      <p className="font-medium text-gray-800 text-sm">{g.name}</p>
+                      <p className="font-medium text-gray-800 dark:text-gray-200 text-sm">{g.name}</p>
                       {g.schedule && <p className="text-xs text-gray-400">{g.schedule}</p>}
                     </div>
                   </div>
@@ -485,18 +453,17 @@ export default function DashboardPage() {
       </div>
 
       {/* Quick links */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <h2 className="font-semibold text-gray-900 mb-4">Tez O'tish</h2>
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+        <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Tez O'tish</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
-            { to: '/students', label: 'Talabalar', icon: Users, color: 'text-blue-600 bg-blue-50 hover:bg-blue-100', roles: ['ADMIN','TEACHER','RECEPTION'] },
-            { to: isTeacher ? '/groups' : '/teachers', label: isTeacher ? 'Guruhlar' : "O'qituvchilar", icon: isTeacher ? Layers : GraduationCap, color: 'text-purple-600 bg-purple-50 hover:bg-purple-100', roles: ['ADMIN','TEACHER','RECEPTION'] },
-            { to: '/calendar', label: 'Kalendar', icon: CalendarDays, color: 'text-green-600 bg-green-50 hover:bg-green-100', roles: ['ADMIN','TEACHER','RECEPTION'] },
-            { to: '/quiz/tests', label: 'Test Banki', icon: ClipboardList, color: 'text-amber-600 bg-amber-50 hover:bg-amber-100', roles: ['ADMIN','TEACHER'] },
-            { to: '/ai/writing', label: 'AI Writing', icon: BookOpen, color: 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100', roles: ['ADMIN','TEACHER','RECEPTION'] },
+            { to: '/students', label: 'Talabalar', icon: Users, color: 'text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40', roles: ['ADMIN','TEACHER','RECEPTION'] },
+            { to: isTeacher ? '/groups' : '/teachers', label: isTeacher ? 'Guruhlar' : "O'qituvchilar", icon: isTeacher ? Layers : GraduationCap, color: 'text-purple-600 bg-purple-50 hover:bg-purple-100 dark:bg-purple-900/20 dark:hover:bg-purple-900/40', roles: ['ADMIN','TEACHER','RECEPTION'] },
+            { to: '/calendar', label: 'Kalendar', icon: CalendarDays, color: 'text-green-600 bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:hover:bg-green-900/40', roles: ['ADMIN','TEACHER','RECEPTION'] },
+            { to: '/quiz/tests', label: 'Test Banki', icon: ClipboardList, color: 'text-amber-600 bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/20 dark:hover:bg-amber-900/40', roles: ['ADMIN','TEACHER'] },
+            { to: '/ai/writing', label: 'AI Writing', icon: BookOpen, color: 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/20 dark:hover:bg-indigo-900/40', roles: ['ADMIN','TEACHER','RECEPTION'] },
           ].filter(item => item.roles.includes(user?.role ?? '')).map(({ to, label, icon: Icon, color }) => (
-            <Link key={to} to={to}
-              className={`flex flex-col items-center gap-2.5 p-4 rounded-xl ${color} transition text-center`}>
+            <Link key={to} to={to} className={`flex flex-col items-center gap-2.5 p-4 rounded-xl ${color} transition text-center`}>
               <Icon size={22} />
               <span className="text-sm font-medium">{label}</span>
             </Link>
@@ -504,7 +471,6 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* AI Chat Widget */}
       <AiChatWidget />
     </div>
   );

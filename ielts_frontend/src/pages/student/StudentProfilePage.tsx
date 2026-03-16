@@ -2,14 +2,15 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getStudent } from '../../api/students';
 import { updateStudentAvatar } from '../../api/students';
-import { getEnrollmentsByStudent } from '../../api/groups';
+import { getMyEnrollments } from '../../api/groups';
 import { getStudentAttendancePercent } from '../../api/attendance';
 import { getStudentExamResults } from '../../api/exams';
 import { getActiveSession } from '../../api/quiz';
 import { getLessonsByGroup } from '../../api/lessons';
 import { uploadAvatar } from '../../api/upload';
 import { changeMyPassword } from '../../api/auth';
-import { BookOpen, TrendingUp, ClipboardList, Phone, Mail, Calendar, PlayCircle, FileText, Camera, Loader2, KeyRound, Eye, EyeOff } from 'lucide-react';
+import { BookOpen, TrendingUp, ClipboardList, Phone, Mail, Calendar, PlayCircle, FileText, Camera, Loader2, KeyRound, Eye, EyeOff, Sparkles } from 'lucide-react';
+import { predictBand, type BandPredictionResponse } from '../../api/ai';
 import { useNavigate } from 'react-router-dom';
 import { useState, useRef } from 'react';
 import toast from 'react-hot-toast';
@@ -47,6 +48,13 @@ export default function StudentProfilePage() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPwd, setShowPwd] = useState(false);
+  const [bandResult, setBandResult] = useState<BandPredictionResponse | null>(null);
+
+  const bandMutation = useMutation({
+    mutationFn: () => predictBand(studentId),
+    onSuccess: (data) => setBandResult(data),
+    onError: () => toast.error("Band bashorat qilishda xatolik"),
+  });
 
   const { data: student, isLoading: loadingStudent } = useQuery({
     queryKey: ['student', studentId],
@@ -56,7 +64,7 @@ export default function StudentProfilePage() {
 
   const { data: enrollments = [], isLoading: loadingEnrollments } = useQuery({
     queryKey: ['enrollmentsByStudent', studentId],
-    queryFn: () => getEnrollmentsByStudent(studentId),
+    queryFn: () => getMyEnrollments(studentId),
     enabled: !!studentId,
   });
 
@@ -377,6 +385,61 @@ export default function StudentProfilePage() {
             <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-md font-medium text-xs">Talaba</span>
           </div>
         </div>
+      </div>
+
+      {/* Band prediction */}
+      <div className="bg-white rounded-xl border border-gray-200 mb-5">
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+          <h2 className="font-semibold text-gray-800 flex items-center gap-2">
+            <Sparkles size={16} className="text-yellow-500" /> IELTS Band Bashorati
+          </h2>
+          <button
+            onClick={() => bandMutation.mutate()}
+            disabled={bandMutation.isPending}
+            className="flex items-center gap-1.5 text-xs bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-medium px-3 py-1.5 rounded-lg transition"
+          >
+            {bandMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+            {bandMutation.isPending ? 'Tahlil...' : 'Bashorat qilish'}
+          </button>
+        </div>
+        {bandResult ? (
+          <div className="px-5 py-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Bashorat qilingan band:</span>
+              <span className="text-2xl font-bold text-indigo-700">{bandResult.predictedBand}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Ishonch darajasi:</span>
+              <span className={`text-sm font-medium px-2 py-0.5 rounded ${
+                bandResult.confidence === 'yuqori' ? 'bg-green-100 text-green-700' :
+                bandResult.confidence === "o'rta" ? 'bg-yellow-100 text-yellow-700' :
+                'bg-red-100 text-red-700'
+              }`}>{bandResult.confidence}</span>
+            </div>
+            {bandResult.weakestSkill && (
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Eng zaif ko'nikma:</span>
+                <span className="text-sm font-medium text-red-600">{bandResult.weakestSkill}</span>
+              </div>
+            )}
+            {bandResult.analysis && (
+              <div className="bg-indigo-50 rounded-lg p-3 mt-2">
+                <p className="text-xs font-semibold text-indigo-600 uppercase mb-1">Tahlil</p>
+                <p className="text-sm text-indigo-800">{bandResult.analysis}</p>
+              </div>
+            )}
+            {bandResult.recommendations && (
+              <div className="bg-yellow-50 rounded-lg p-3">
+                <p className="text-xs font-semibold text-yellow-600 uppercase mb-1">Tavsiyalar</p>
+                <p className="text-sm text-yellow-800">{bandResult.recommendations}</p>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="px-5 py-4 text-sm text-gray-400">
+            Imtihon natijalaringiz asosida AI IELTS band skorini bashorat qiladi.
+          </div>
+        )}
       </div>
 
       {/* Password change section */}

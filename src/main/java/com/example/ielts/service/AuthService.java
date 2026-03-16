@@ -75,12 +75,10 @@ public class AuthService {
                 () -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Bad credentials")
         );
 
-        if (!u.isActive()) {
-            if ("STUDENT".equals(u.getRole())) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Hisobingiz hali tasdiqlanmagan. Admin bilan bog'laning.");
-            }
+        if (!u.isActive() && !"STUDENT".equals(u.getRole())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User inactive");
         }
+        // Inactive students can login with limited access (support/FAQ only)
 
         boolean match = encoder.matches(pass, u.getPasswordHash());
         if (!match) {
@@ -103,5 +101,19 @@ public class AuthService {
     public void updatePassword(User u, String newPassword) {
         u.setPasswordHash(encoder.encode(newPassword));
         userRepo.save(u);
+    }
+
+    public String encodePassword(String raw) {
+        return encoder.encode(raw);
+    }
+
+    public void registerStudent(String username, String password, UUID studentId) {
+        User user = new User();
+        user.setUsername(username);
+        user.setPasswordHash(encoder.encode(password));
+        user.setRole("STUDENT");
+        user.setStudentId(studentId);
+        user.setActive(true);
+        userRepo.save(user);
     }
 }

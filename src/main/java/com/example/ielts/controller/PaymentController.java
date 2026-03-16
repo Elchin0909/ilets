@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -53,6 +54,13 @@ public class PaymentController {
     @PreAuthorize("hasAnyRole('ADMIN','RECEPTION')")
     public BigDecimal totalByMonth(@PathVariable String month) {
         return service.totalByMonth(month);
+    }
+
+    /** Qarzdor talabalar (shu oy uchun to'lov qilmaganlar) */
+    @GetMapping("/debtors")
+    @PreAuthorize("hasAnyRole('ADMIN','RECEPTION')")
+    public List<Map<String, Object>> getDebtors(@RequestParam(required = false) String month) {
+        return service.getDebtors(month);
     }
 
     /** To'lovni o'chirish — faqat ADMIN */

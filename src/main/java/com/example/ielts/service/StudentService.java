@@ -4,6 +4,7 @@ import com.example.ielts.dto.StudentCreateRequest;
 import com.example.ielts.dto.StudentResponse;
 import com.example.ielts.entity.Student;
 import com.example.ielts.repo.StudentRepository;
+import com.example.ielts.repo.UserRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -13,9 +14,11 @@ import java.util.UUID;
 public class StudentService {
 
     private final StudentRepository repo;
+    private final UserRepository userRepo;
 
-    public StudentService(StudentRepository repo) {
+    public StudentService(StudentRepository repo, UserRepository userRepo) {
         this.repo = repo;
+        this.userRepo = userRepo;
     }
 
     public StudentResponse create(StudentCreateRequest req) {
@@ -69,6 +72,10 @@ public class StudentService {
         r.birthDate = s.getBirthDate();
         r.createdAt = s.getCreatedAt();
         r.avatarUrl = s.getAvatarUrl();
+        userRepo.findByStudentId(s.getStudentId()).ifPresent(u -> {
+            r.hasAccount = true;
+            r.username = u.getUsername();
+        });
         return r;
     }
 }

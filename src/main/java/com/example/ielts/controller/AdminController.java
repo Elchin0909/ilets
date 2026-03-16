@@ -10,10 +10,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -85,5 +83,85 @@ public class AdminController {
         user.setActive(true);
         userRepo.save(user);
         return Map.of("ok", true);
+    }
+
+    // ===== STUDENT ACCOUNT MANAGEMENT =====
+
+    @PostMapping("/students/{studentId}/create-account")
+    @PreAuthorize("hasAnyRole('ADMIN','RECEPTION')")
+    public Map<String, Object> createStudentAccount(
+            @PathVariable UUID studentId,
+            @RequestBody Map<String, String> body
+    ) {
+        String username = body.get("username");
+        String password = body.get("password");
+        if (username == null || username.isBlank())
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username bo'sh bo'lmasligi kerak");
+        if (password == null || password.length() < 4)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Parol kamida 4 ta belgidan iborat bo'lishi kerak");
+
+        if (userRepo.findByStudentId(studentId).isPresent())
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Bu talabada allaqachon akkaunt mavjud");
+        if (userRepo.findByUsername(username).isPresent())
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Bu username band");
+
+        studentRepo.findById(studentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Talaba topilmadi"));
+
+        authService.registerStudent(username, password, studentId);
+        return Map.of("ok", true);
+    }
+
+    @PostMapping("/students/{studentId}/reset-password")
+    @PreAuthorize("hasAnyRole('ADMIN','RECEPTION')")
+    public Map<String, Object> resetStudentPassword(
+            @PathVariable UUID studentId,
+            @RequestBody Map<String, String> body
+    ) {
+        String newPassword = body.get("newPassword");
+        if (newPassword == null || newPassword.length() < 4)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Parol kamida 4 ta belgidan iborat bo'lishi kerak");
+        User user = userRepo.findByStudentId(studentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Bu talabada akkaunt topilmadi"));
+        authService.updatePassword(user, newPassword);
+        return Map.of("ok", true);
+    }
+
+    // ===== CREATE USER (STAFF) =====
+
+    @PostMapping("/users")
+    @PreAuthorize("hasRole('ADMIN')")
+    public Map<String, Object> createUser(@RequestBody Map<String, String> body) {
+        String username = body.get("username");
+        String password = body.get("password");
+        String role = body.get("role");
+        String teacherIdStr = body.get("teacherId");
+
+        if (username == null || username.isBlank())
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username bo'sh bo'lmasligi kerak");
+        if (password == null || password.length() < 4)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Parol kamida 4 ta belgidan iborat bo'lishi kerak");
+        if (role == null || role.isBlank())
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Role kerak");
+        if (userRepo.findByUsername(username).isPresent())
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Bu username band");
+
+        Set<String> allowedRoles = Set.of("RECEPTION", "TEACHER", "MANAGER", "ADMIN");
+        if (!allowedRoles.contains(role))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Noto'g'ri role: " + role);
+
+        UUID teacherId = null;
+        if ("TEACHER".equals(role) && teacherIdStr != null && !teacherIdStr.isBlank()) {
+            teacherId = UUID.fromString(teacherIdStr);
+        }
+
+        User u = new User();
+        u.setUsername(username);
+        u.setPasswordHash(authService.encodePassword(password));
+        u.setRole(role);
+        u.setTeacherId(teacherId);
+        u.setActive(true);
+        userRepo.save(u);
+        return Map.of("ok", true, "userId", u.getUserId());
     }
 }

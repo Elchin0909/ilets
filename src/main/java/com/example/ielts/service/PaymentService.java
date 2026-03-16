@@ -9,20 +9,25 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.example.ielts.repo.EnrollmentRepository;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.List;
-import java.util.UUID;
+import java.time.YearMonth;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class PaymentService {
 
     private final PaymentRepository paymentRepo;
     private final StudentRepository studentRepo;
+    private final EnrollmentRepository enrollmentRepo;
 
-    public PaymentService(PaymentRepository paymentRepo, StudentRepository studentRepo) {
+    public PaymentService(PaymentRepository paymentRepo, StudentRepository studentRepo, EnrollmentRepository enrollmentRepo) {
         this.paymentRepo = paymentRepo;
         this.studentRepo = studentRepo;
+        this.enrollmentRepo = enrollmentRepo;
     }
 
     public PaymentResponse create(PaymentCreateRequest req) {
@@ -72,6 +77,44 @@ public class PaymentService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "To'lov topilmadi");
         }
         paymentRepo.deleteById(paymentId);
+    }
+
+    public List<Map<String, Object>> getDebtors(String month) {
+        if (month == null || month.isBlank()) {
+            month = YearMonth.now().toString(); // "2026-03"
+        }
+        // 1. All students with active enrollments
+        var allEnrollments = enrollmentRepo.findAll();
+        Set<UUID> activeStudentIds = allEnrollments.stream()
+                .filter(e -> "ACTIVE".equalsIgnoreCase(e.getStatus()))
+                .map(e -> e.getStudentId())
+                .collect(Collectors.toSet());
+
+        // 2. Students who paid this month
+        Set<UUID> paidIds = new HashSet<>(paymentRepo.findPaidStudentIdsByMonth(month));
+
+        // 3. Debtors = active - paid
+        activeStudentIds.removeAll(paidIds);
+
+        // 4. Build response
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (UUID sid : activeStudentIds) {
+            var student = studentRepo.findById(sid).orElse(null);
+            if (student == null) continue;
+            // Find student's groups
+            var studentEnrollments = allEnrollments.stream()
+                    .filter(e -> e.getStudentId().equals(sid) && "ACTIVE".equalsIgnoreCase(e.getStatus()))
+                    .toList();
+
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("studentId", sid);
+            row.put("fullName", student.getFullName());
+            row.put("phone", student.getPhone());
+            row.put("groupCount", studentEnrollments.size());
+            result.add(row);
+        }
+        result.sort(Comparator.comparing(m -> (String) m.get("fullName")));
+        return result;
     }
 
     private PaymentResponse toResponse(Payment p, String studentName) {

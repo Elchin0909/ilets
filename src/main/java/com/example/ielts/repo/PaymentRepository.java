@@ -24,4 +24,7 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
 
     @Query("SELECT COALESCE(SUM(p.amount), 0) FROM Payment p WHERE p.month = :month")
     BigDecimal sumAmountByMonth(@Param("month") String month);
+
+    @Query("SELECT p.studentId FROM Payment p WHERE p.month = :month AND p.type = 'MONTHLY'")
+    List<UUID> findPaidStudentIdsByMonth(@Param("month") String month);
 }

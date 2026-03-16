@@ -53,3 +53,16 @@ export const getWritingLogs = () =>
 
 export const getStudentWritingLogs = (studentId: string) =>
   api.get<WritingLogEntry[]>(`/writing-logs/student/${studentId}`).then((r) => r.data);
+
+// Dictionary
+export interface DictionaryResponse {
+  word: string;
+  translation: string;
+  pronunciation: string;
+  partOfSpeech: string;
+  examples: string[];
+  synonyms: string[];
+}
+
+export const lookupWord = (word: string, langPair: string) =>
+  api.post<DictionaryResponse>('/ai/dictionary', { word, langPair }).then((r) => r.data);

@@ -61,6 +61,8 @@ public class AuthController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Parol kamida 4 ta belgidan iborat bo'lishi kerak");
         if (fullName == null || fullName.isBlank())
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ism majburiy");
+        if (phone == null || !phone.matches("^\\+998\\d{9}$"))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Telefon raqam +998XXXXXXXXX formatida bo'lishi kerak");
         if (userRepo.existsByUsername(username))
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Bu username band. Boshqa username tanlang.");
 
@@ -229,6 +231,10 @@ public class AuthController {
         res.put("role", me.getRole());
         res.put("teacherId", me.getTeacherId());
         res.put("studentId", me.getStudentId());
+
+        // active status — inactive students have limited access
+        var userEntity = userRepo.findByUsername(me.getUsername()).orElse(null);
+        res.put("active", userEntity != null && userEntity.isActive());
 
         return res;
     }

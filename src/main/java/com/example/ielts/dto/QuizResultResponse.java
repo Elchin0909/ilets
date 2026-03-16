@@ -13,4 +13,6 @@ public class QuizResultResponse {
     public int correctAnswers;
     public BigDecimal score;
     public LocalDateTime submittedAt;
+    public String testTitle;
+    public String testLevel;
 }

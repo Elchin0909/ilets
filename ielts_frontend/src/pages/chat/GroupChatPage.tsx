@@ -3,11 +3,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft, Send, Loader2, MessageSquare,
   Paperclip, Mic, MicOff, Download, FileText, Image,
+  Play, Pause, Check, ExternalLink,
 } from 'lucide-react';
 import { getChatMessages, sendChatMessage, sendChatFile, type ChatMessage } from '../../api/chat';
 import { getGroup } from '../../api/groups';
 import { useAuth } from '../../contexts/AuthContext';
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import toast from 'react-hot-toast';
 
 // ── constants ─────────────────────────────────────────────────────────────────
@@ -80,8 +81,35 @@ function mimeToExt(mime: string): string {
 
 function ImageBubble({ msg, isMe }: { msg: ChatMessage; isMe: boolean }) {
   const [lightbox, setLightbox] = useState(false);
+  const [imgError, setImgError] = useState(false);
   const name = msg.fileName ?? 'rasm';
   const src  = msg.fileUrl ?? '';
+
+  if (imgError || !src) {
+    // Fallback — rasm yuklanmadi
+    return (
+      <a
+        href={src || '#'}
+        target="_blank"
+        rel="noreferrer"
+        className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl shadow-sm max-w-[260px] ${
+          isMe
+            ? 'bg-indigo-600 text-white rounded-tr-sm hover:bg-indigo-700'
+            : 'bg-gray-100 text-gray-800 rounded-tl-sm hover:bg-gray-200'
+        } transition`}
+      >
+        <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
+          isMe ? 'bg-white/20' : 'bg-indigo-100'
+        }`}>
+          <Image size={18} className={isMe ? 'text-white' : 'text-indigo-600'} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium truncate">{name}</p>
+          <p className={`text-xs ${isMe ? 'text-white/70' : 'text-gray-400'}`}>Rasmni ochish</p>
+        </div>
+      </a>
+    );
+  }
 
   return (
     <>
@@ -100,6 +128,7 @@ function ImageBubble({ msg, isMe }: { msg: ChatMessage; isMe: boolean }) {
           src={src}
           alt={name}
           loading="lazy"
+          onError={() => setImgError(true)}
           className="block w-full max-h-[260px] object-cover"
         />
       </div>
@@ -128,17 +157,61 @@ function ImageBubble({ msg, isMe }: { msg: ChatMessage; isMe: boolean }) {
   );
 }
 
-// ── DOCUMENT bubble ───────────────────────────────────────────────────────────
+// ── DOCUMENT bubble (Telegram-style: tap to download, tap to open) ───────────
 
 function DocBubble({ msg, isMe }: { msg: ChatMessage; isMe: boolean }) {
   const name = msg.fileName ?? msg.content ?? 'fayl';
+  const src = msg.fileUrl ?? '';
+  const [state, setState] = useState<'idle' | 'loading' | 'ready'>('idle');
+  const blobUrlRef = useRef<string | null>(null);
+
+  // cleanup blob URL on unmount
+  useEffect(() => () => {
+    if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
+  }, []);
+
+  const handleTap = async () => {
+    if (!src) return;
+
+    if (state === 'ready' && blobUrlRef.current) {
+      // second tap → open file
+      window.open(blobUrlRef.current, '_blank');
+      return;
+    }
+
+    if (state === 'loading') return;
+
+    // first tap → download
+    setState('loading');
+    try {
+      const resp = await fetch(src);
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      blobUrlRef.current = url;
+
+      // trigger download
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = name;
+      a.click();
+
+      setState('ready');
+    } catch {
+      // fallback: open in new tab
+      window.open(src, '_blank');
+      setState('ready');
+    }
+  };
+
+  const ext = name.split('.').pop()?.toUpperCase() ?? 'FILE';
+
   return (
-    <a
-      href={msg.fileUrl ?? '#'}
-      download={name}
-      target="_blank"
-      rel="noreferrer"
-      className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl shadow-sm max-w-[260px] ${
+    <div
+      onClick={handleTap}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => e.key === 'Enter' && handleTap()}
+      className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl shadow-sm max-w-[260px] cursor-pointer select-none ${
         isMe
           ? 'bg-indigo-600 text-white rounded-tr-sm hover:bg-indigo-700'
           : 'bg-gray-100 text-gray-800 rounded-tl-sm hover:bg-gray-200'
@@ -147,40 +220,164 @@ function DocBubble({ msg, isMe }: { msg: ChatMessage; isMe: boolean }) {
       <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
         isMe ? 'bg-white/20' : 'bg-indigo-100'
       }`}>
-        <FileText size={18} className={isMe ? 'text-white' : 'text-indigo-600'} />
+        {state === 'loading' ? (
+          <Loader2 size={18} className={`animate-spin ${isMe ? 'text-white' : 'text-indigo-600'}`} />
+        ) : state === 'ready' ? (
+          <Check size={18} className={isMe ? 'text-white' : 'text-green-600'} />
+        ) : (
+          <FileText size={18} className={isMe ? 'text-white' : 'text-indigo-600'} />
+        )}
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate">{name}</p>
         <p className={`text-xs ${isMe ? 'text-white/70' : 'text-gray-400'}`}>
-          Yuklab olish
+          {state === 'idle' ? `${ext} · Bosing ↓` : state === 'loading' ? 'Yuklanmoqda...' : 'Ochish ↗'}
         </p>
       </div>
-      <Download size={14} className={`flex-shrink-0 ${isMe ? 'text-white/70' : 'text-gray-400'}`} />
-    </a>
+      {state === 'ready' ? (
+        <ExternalLink size={14} className={`flex-shrink-0 ${isMe ? 'text-white/70' : 'text-gray-400'}`} />
+      ) : (
+        <Download size={14} className={`flex-shrink-0 ${isMe ? 'text-white/70' : 'text-gray-400'}`} />
+      )}
+    </div>
   );
 }
 
-// ── VOICE bubble ──────────────────────────────────────────────────────────────
+// ── VOICE bubble (Telegram-style: tap to load, tap to play/pause) ────────────
 
 function VoiceBubble({ msg, isMe }: { msg: ChatMessage; isMe: boolean }) {
+  const src = msg.fileUrl ?? '';
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [state, setState] = useState<'idle' | 'loading' | 'ready' | 'playing' | 'error'>('idle');
+  const [progress, setProgress] = useState(0);     // 0..1
+  const [duration, setDuration] = useState(0);      // seconds
+  const [currentTime, setCurrent] = useState(0);
+  const rafRef = useRef<number>(0);
+
+  // cleanup on unmount
+  useEffect(() => () => {
+    cancelAnimationFrame(rafRef.current);
+    if (audioRef.current) { audioRef.current.pause(); audioRef.current.src = ''; }
+  }, []);
+
+  const tick = useCallback(() => {
+    const a = audioRef.current;
+    if (!a) return;
+    setCurrent(a.currentTime);
+    setProgress(a.duration ? a.currentTime / a.duration : 0);
+    if (!a.paused) rafRef.current = requestAnimationFrame(tick);
+  }, []);
+
+  const loadAudio = useCallback(() => {
+    if (!src) return;
+    setState('loading');
+    const a = new Audio();
+    a.preload = 'auto';
+    a.src = src;
+    a.addEventListener('canplaythrough', () => {
+      setDuration(a.duration || 0);
+      setState('ready');
+    }, { once: true });
+    a.addEventListener('error', () => setState('error'));
+    a.addEventListener('ended', () => {
+      setState('ready');
+      setProgress(0);
+      setCurrent(0);
+      cancelAnimationFrame(rafRef.current);
+    });
+    audioRef.current = a;
+    a.load();
+  }, [src]);
+
+  const handleTap = () => {
+    if (state === 'idle' || state === 'error') {
+      loadAudio();
+      return;
+    }
+    if (state === 'loading') return;
+    const a = audioRef.current;
+    if (!a) return;
+    if (state === 'playing') {
+      a.pause();
+      cancelAnimationFrame(rafRef.current);
+      setState('ready');
+    } else {
+      a.play().then(() => {
+        setState('playing');
+        rafRef.current = requestAnimationFrame(tick);
+      }).catch(() => setState('error'));
+    }
+  };
+
+  // Waveform bars (static pattern)
+  const bars = useMemo(() => {
+    const pattern = [3, 5, 8, 6, 10, 7, 4, 9, 6, 11, 5, 8, 3, 7, 10, 6, 4, 9, 5, 7, 11, 8, 3, 6];
+    return pattern;
+  }, []);
+
+  const fmtTime = (s: number) => {
+    if (!s || !isFinite(s)) return '0:00';
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return `${m}:${sec.toString().padStart(2, '0')}`;
+  };
+
+  const displayTime = state === 'playing' || (state === 'ready' && currentTime > 0)
+    ? fmtTime(currentTime)
+    : fmtTime(duration);
+
   return (
-    <div className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl shadow-sm min-w-[200px] ${
-      isMe
-        ? 'bg-indigo-600 text-white rounded-tr-sm'
-        : 'bg-gray-100 text-gray-800 rounded-tl-sm'
-    }`}>
-      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-        isMe ? 'bg-white/20' : 'bg-indigo-100'
+    <div
+      className={`flex items-center gap-2.5 px-3 py-2 rounded-2xl shadow-sm min-w-[220px] max-w-[280px] cursor-pointer select-none ${
+        isMe
+          ? 'bg-indigo-600 text-white rounded-tr-sm'
+          : 'bg-gray-100 text-gray-800 rounded-tl-sm'
+      }`}
+      onClick={handleTap}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => e.key === 'Enter' && handleTap()}
+    >
+      {/* Play/Pause/Download button */}
+      <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition ${
+        isMe ? 'bg-white/20 hover:bg-white/30' : 'bg-indigo-100 hover:bg-indigo-200'
       }`}>
-        🎙️
+        {state === 'loading' ? (
+          <Loader2 size={18} className={`animate-spin ${isMe ? 'text-white' : 'text-indigo-600'}`} />
+        ) : state === 'playing' ? (
+          <Pause size={18} className={isMe ? 'text-white' : 'text-indigo-600'} />
+        ) : state === 'error' ? (
+          <Download size={18} className={isMe ? 'text-white' : 'text-indigo-600'} />
+        ) : (
+          <Play size={18} className={`${isMe ? 'text-white' : 'text-indigo-600'} ml-0.5`} />
+        )}
       </div>
-      <audio
-        controls
-        src={msg.fileUrl ?? undefined}
-        className="flex-1 h-8"
-        preload="metadata"
-        style={isMe ? { filter: 'invert(1) hue-rotate(180deg)' } : undefined}
-      />
+
+      {/* Waveform + time */}
+      <div className="flex-1 min-w-0">
+        {/* Waveform bars */}
+        <div className="flex items-end gap-[2px] h-[16px]">
+          {bars.map((h, i) => {
+            const pct = bars.length > 0 ? i / bars.length : 0;
+            const isPlayed = progress > pct;
+            return (
+              <div
+                key={i}
+                className={`w-[2px] rounded-full transition-colors duration-100 ${
+                  isPlayed
+                    ? isMe ? 'bg-white' : 'bg-indigo-600'
+                    : isMe ? 'bg-white/30' : 'bg-gray-300'
+                }`}
+                style={{ height: `${h}px` }}
+              />
+            );
+          })}
+        </div>
+        {/* Time */}
+        <p className={`text-[11px] mt-0.5 ${isMe ? 'text-white/70' : 'text-gray-400'}`}>
+          {state === 'idle' ? 'Bosing ▶' : state === 'loading' ? 'Yuklanmoqda...' : state === 'error' ? 'Xatolik · qayta urinish' : displayTime}
+        </p>
+      </div>
     </div>
   );
 }

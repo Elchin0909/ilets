@@ -16,6 +16,7 @@ export interface MeResponse {
   role: string;
   teacherId?: string;
   studentId?: string;
+  active?: boolean;
 }
 
 // User (admin management)
@@ -34,14 +35,18 @@ export interface Student {
   fullName: string;
   phone: string;
   email?: string;
+  birthDate?: string;
   avatarUrl?: string;
   createdAt?: string;
+  hasAccount?: boolean;
+  username?: string;
 }
 
 export interface StudentCreateRequest {
   fullName: string;
   phone: string;
   email?: string;
+  birthDate?: string;
 }
 
 // Teacher

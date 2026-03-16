@@ -40,3 +40,13 @@ export const createPayment = (data: PaymentCreateRequest) =>
 
 export const deletePayment = (paymentId: string) =>
   api.delete(`/payments/${paymentId}`);
+
+export interface Debtor {
+  studentId: string;
+  fullName: string;
+  phone: string;
+  groupCount: number;
+}
+
+export const getDebtors = (month?: string) =>
+  api.get<Debtor[]>('/payments/debtors', { params: month ? { month } : {} }).then((r) => r.data);

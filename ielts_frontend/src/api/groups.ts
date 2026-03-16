@@ -68,6 +68,10 @@ export const updateEnrollmentStatus = (id: string, status: string) =>
 export const getEnrollmentsByStudent = (studentId: string) =>
   api.get<any[]>(`/enrollments/by-student/${studentId}`).then((r) => r.data.map(mapEnrollment));
 
+// Talaba o'z guruhlarini ko'rishi uchun (isAuthenticated)
+export const getMyEnrollments = (studentId: string) =>
+  api.get<any[]>(`/enrollments/my/${studentId}`).then((r) => r.data.map(mapEnrollment));
+
 export const getGroupAttendanceSummary = (groupId: string) =>
   api.get<any>(`/v1/teacher/dashboard/groups/${groupId}/attendance`).then((r) => r.data);
 

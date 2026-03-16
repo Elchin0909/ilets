@@ -114,7 +114,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             var u = userRepo.findByUsername(username).orElse(null);
             log.info("DB user found? {}", (u != null));
 
-            if (u == null || !u.isActive()) {
+            // Allow inactive students to use limited endpoints (support/FAQ)
+            if (u == null || (!u.isActive() && !"STUDENT".equals(u.getRole()))) {
                 filterChain.doFilter(request, response);
                 return;
             }

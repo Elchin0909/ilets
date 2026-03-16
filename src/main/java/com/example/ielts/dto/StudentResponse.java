@@ -12,4 +12,6 @@ public class StudentResponse {
     public LocalDate birthDate;
     public LocalDateTime createdAt;
     public String avatarUrl;
+    public boolean hasAccount;
+    public String username;
 }

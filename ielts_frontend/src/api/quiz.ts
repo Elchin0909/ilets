@@ -99,3 +99,6 @@ export const getGroupSessions = (groupId: string) =>
   api
     .get<QuizSessionResponse[]>(`/quiz/sessions/by-group/${groupId}`)
     .then((r) => r.data);
+
+export const getStudentQuizResults = (studentId: string) =>
+  api.get<(QuizResultResponse & { testTitle?: string; testLevel?: string })[]>(`/quiz/results/by-student/${studentId}`).then((r) => r.data);

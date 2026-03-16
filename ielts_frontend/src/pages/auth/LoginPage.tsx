@@ -21,7 +21,11 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const me = await login(username, password);
-      navigate(me.role === 'STUDENT' ? '/student-profile' : '/');
+      if (me.role === 'STUDENT' && me.active === false) {
+        navigate('/support');
+      } else {
+        navigate(me.role === 'STUDENT' ? '/student-profile' : '/');
+      }
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } };
       setError(axiosErr.response?.data?.message || 'Login failed. Check credentials.');

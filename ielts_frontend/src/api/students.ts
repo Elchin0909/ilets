@@ -7,7 +7,11 @@ const mapStudent = (s: any): Student => ({
   fullName: s.fullName,
   phone: s.phone,
   email: s.email,
+  birthDate: s.birthDate,
+  avatarUrl: s.avatarUrl,
   createdAt: s.createdAt,
+  hasAccount: s.hasAccount ?? false,
+  username: s.username,
 });
 
 export const getStudents = () =>
