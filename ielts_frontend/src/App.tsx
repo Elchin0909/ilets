@@ -46,6 +46,15 @@ import SupportPage from './pages/student/SupportPage';
 import SupportAdminPage from './pages/support/SupportAdminPage';
 import VideoLessonsPage from './pages/student/VideoLessonsPage';
 import ResourcesPage from './pages/resources/ResourcesPage';
+import HomeworkPage from './pages/homework/HomeworkPage';
+import MyHomeworkPage from './pages/homework/MyHomeworkPage';
+import ReportsPage from './pages/reports/ReportsPage';
+import CertificatePage from './pages/reports/CertificatePage';
+import QrAttendancePage from './pages/attendance/QrAttendancePage';
+import TeacherSchedulePage from './pages/teachers/TeacherSchedulePage';
+import BulkOperationsPage from './pages/admin/BulkOperationsPage';
+import SmsSettingsPage from './pages/admin/SmsSettingsPage';
+import MockTestPage from './pages/student/MockTestPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -111,6 +120,15 @@ export default function App() {
                 <Route path="/videos" element={<VideoLessonsPage />} />
                 <Route path="/support" element={<SupportPage />} />
                 <Route path="/resources-manage" element={<ResourcesPage />} />
+                <Route path="/homework" element={<HomeworkPage />} />
+                <Route path="/my-homework" element={<MyHomeworkPage />} />
+                <Route path="/reports" element={<ReportsPage />} />
+                <Route path="/certificates" element={<CertificatePage />} />
+                <Route path="/qr-attendance" element={<QrAttendancePage />} />
+                <Route path="/teacher-schedule" element={<TeacherSchedulePage />} />
+                <Route path="/bulk-operations" element={<BulkOperationsPage />} />
+                <Route path="/sms" element={<SmsSettingsPage />} />
+                <Route path="/mock-tests" element={<MockTestPage />} />
                 <Route path="/support-admin" element={<SupportAdminPage />} />
                 <Route path="/chat/group/:groupId" element={<GroupChatPage />} />
               </Route>

@@ -12,6 +12,8 @@ public class StudentResponse {
     public LocalDate birthDate;
     public LocalDateTime createdAt;
     public String avatarUrl;
+    public Double ieltsBandScore;
+    public Double targetBandScore;
     public boolean hasAccount;
     public String username;
 }

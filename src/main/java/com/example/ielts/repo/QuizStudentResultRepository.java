@@ -11,4 +11,5 @@ public interface QuizStudentResultRepository extends JpaRepository<QuizStudentRe
     List<QuizStudentResult> findBySessionId(UUID sessionId);
     Optional<QuizStudentResult> findBySessionIdAndStudentId(UUID sessionId, UUID studentId);
     List<QuizStudentResult> findByStudentId(UUID studentId);
+    List<QuizStudentResult> findByStudentIdOrderBySubmittedAtDesc(UUID studentId);
 }

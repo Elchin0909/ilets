@@ -5,6 +5,8 @@ import { getTeachers } from '../../api/teachers';
 import { getGroups, getEnrollments } from '../../api/groups';
 import { getCourses } from '../../api/courses';
 import { getWritingStats } from '../../api/ai';
+import { getMonthlyRevenue, getStudentsTrend } from '../../api/analytics';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell } from 'recharts';
 
 /* ── Helpers ─────────────────────────────── */
 function StatBlock({ icon: Icon, value, label, color, bg }: {
@@ -62,6 +64,8 @@ export default function AnalyticsPage() {
   const { data: courses = [], isLoading: lc } = useQuery({ queryKey: ['courses'], queryFn: getCourses });
   const { data: enrollments = [] } = useQuery({ queryKey: ['enrollments'], queryFn: getEnrollments });
   const { data: writingStats } = useQuery({ queryKey: ['writing-stats'], queryFn: getWritingStats });
+  const { data: revenue = [] } = useQuery({ queryKey: ['analytics-revenue'], queryFn: () => getMonthlyRevenue(6) });
+  const { data: studentsTrend = [] } = useQuery({ queryKey: ['analytics-students-trend'], queryFn: () => getStudentsTrend(6) });
 
   const loading = ls || lt || lg || lc;
 
@@ -165,6 +169,97 @@ export default function AnalyticsPage() {
           </div>
         ))}
       </div>
+
+      {/* ── Recharts: Revenue & Students Trend ────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+        {/* Monthly Revenue */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+          <h2 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <TrendingUp size={16} className="text-green-500" /> Oylik Daromad
+          </h2>
+          {revenue.length > 0 ? (
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={revenue}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="label" tick={{ fontSize: 12, fill: '#9ca3af' }} />
+                <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} tickFormatter={(v) => `${(v / 1e6).toFixed(1)}M`} />
+                <Tooltip
+                  formatter={(value: any) => [`${Number(value).toLocaleString()} UZS`, 'Daromad']}
+                  contentStyle={{ borderRadius: 12, border: '1px solid #e5e7eb', fontSize: 13 }}
+                />
+                <Bar dataKey="amount" fill="#22c55e" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <p className="text-center text-gray-400 text-sm py-10">Ma'lumot yo'q</p>
+          )}
+        </div>
+
+        {/* New Students Trend */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+          <h2 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <Users size={16} className="text-blue-500" /> Yangi Talabalar Trendi
+          </h2>
+          {studentsTrend.length > 0 ? (
+            <ResponsiveContainer width="100%" height={220}>
+              <AreaChart data={studentsTrend}>
+                <defs>
+                  <linearGradient id="colorStudents" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="label" tick={{ fontSize: 12, fill: '#9ca3af' }} />
+                <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} allowDecimals={false} />
+                <Tooltip
+                  formatter={(value: any) => [`${value} ta`, 'Yangi talaba']}
+                  contentStyle={{ borderRadius: 12, border: '1px solid #e5e7eb', fontSize: 13 }}
+                />
+                <Area type="monotone" dataKey="count" stroke="#6366f1" strokeWidth={2} fill="url(#colorStudents)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <p className="text-center text-gray-400 text-sm py-10">Ma'lumot yo'q</p>
+          )}
+        </div>
+      </div>
+
+      {/* Enrollment Pie Chart */}
+      {enrollments.length > 0 && (
+        <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm mb-5">
+          <h2 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <Layers size={16} className="text-indigo-500" /> Yozilish Holati
+          </h2>
+          <div className="flex items-center justify-center">
+            <ResponsiveContainer width={280} height={200}>
+              <PieChart>
+                <Pie
+                  data={[
+                    { name: 'Faol', value: statusCounts.ACTIVE },
+                    { name: 'Tugallangan', value: statusCounts.COMPLETED },
+                    { name: 'Tark etgan', value: statusCounts.DROPPED },
+                  ].filter((d) => d.value > 0)}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={50}
+                  outerRadius={80}
+                  paddingAngle={3}
+                  dataKey="value"
+                  label={({ name, percent }: any) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
+                >
+                  {[statusCounts.ACTIVE, statusCounts.COMPLETED, statusCounts.DROPPED]
+                    .filter((v) => v > 0)
+                    .map((_, i) => (
+                      <Cell key={i} fill={['#22c55e', '#3b82f6', '#ef4444'][i]} />
+                    ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
         {/* Top teachers by students */}

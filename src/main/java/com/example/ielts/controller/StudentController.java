@@ -2,10 +2,14 @@ package com.example.ielts.controller;
 
 import com.example.ielts.dto.StudentCreateRequest;
 import com.example.ielts.dto.StudentResponse;
+import com.example.ielts.entity.Student;
+import com.example.ielts.repo.StudentRepository;
 import com.example.ielts.service.StudentService;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Map;
@@ -16,9 +20,11 @@ import java.util.UUID;
 public class StudentController {
 
     private final StudentService service;
+    private final StudentRepository studentRepo;
 
-    public StudentController(StudentService service) {
+    public StudentController(StudentService service, StudentRepository studentRepo) {
         this.service = service;
+        this.studentRepo = studentRepo;
     }
 
     @PreAuthorize("hasAnyRole('ADMIN','RECEPTION')")
@@ -48,6 +54,16 @@ public class StudentController {
     public StudentResponse updateAvatar(@PathVariable UUID id,
                                         @RequestBody Map<String, String> body) {
         return service.updateAvatar(id, body.get("avatarUrl"));
+    }
+
+    @PatchMapping("/{id}/band-score")
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    public Student updateBandScore(@PathVariable UUID id, @RequestBody Map<String, Double> body) {
+        Student s = studentRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        if (body.containsKey("ieltsBandScore")) s.setIeltsBandScore(body.get("ieltsBandScore"));
+        if (body.containsKey("targetBandScore")) s.setTargetBandScore(body.get("targetBandScore"));
+        return studentRepo.save(s);
     }
 
     @PreAuthorize("hasRole('ADMIN')")

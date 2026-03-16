@@ -37,6 +37,8 @@ export interface Student {
   email?: string;
   birthDate?: string;
   avatarUrl?: string;
+  ieltsBandScore?: number;
+  targetBandScore?: number;
   createdAt?: string;
   hasAccount?: boolean;
   username?: string;

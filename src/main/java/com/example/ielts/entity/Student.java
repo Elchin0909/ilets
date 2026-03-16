@@ -31,6 +31,12 @@ public class Student {
     @Column(name = "avatar_url", length = 500)
     private String avatarUrl;
 
+    @Column(name = "ielts_band_score")
+    private Double ieltsBandScore;
+
+    @Column(name = "target_band_score")
+    private Double targetBandScore;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -53,6 +59,12 @@ public class Student {
 
     public String getAvatarUrl() { return avatarUrl; }
     public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
+
+    public Double getIeltsBandScore() { return ieltsBandScore; }
+    public void setIeltsBandScore(Double ieltsBandScore) { this.ieltsBandScore = ieltsBandScore; }
+
+    public Double getTargetBandScore() { return targetBandScore; }
+    public void setTargetBandScore(Double targetBandScore) { this.targetBandScore = targetBandScore; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
 }

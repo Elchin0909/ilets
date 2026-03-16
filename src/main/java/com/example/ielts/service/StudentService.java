@@ -72,6 +72,8 @@ public class StudentService {
         r.birthDate = s.getBirthDate();
         r.createdAt = s.getCreatedAt();
         r.avatarUrl = s.getAvatarUrl();
+        r.ieltsBandScore = s.getIeltsBandScore();
+        r.targetBandScore = s.getTargetBandScore();
         userRepo.findByStudentId(s.getStudentId()).ifPresent(u -> {
             r.hasAccount = true;
             r.username = u.getUsername();

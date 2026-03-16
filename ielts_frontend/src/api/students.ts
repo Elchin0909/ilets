@@ -9,6 +9,8 @@ const mapStudent = (s: any): Student => ({
   email: s.email,
   birthDate: s.birthDate,
   avatarUrl: s.avatarUrl,
+  ieltsBandScore: s.ieltsBandScore,
+  targetBandScore: s.targetBandScore,
   createdAt: s.createdAt,
   hasAccount: s.hasAccount ?? false,
   username: s.username,
@@ -31,3 +33,6 @@ export const deleteStudent = (id: string) =>
 
 export const updateStudentAvatar = (id: string, avatarUrl: string) =>
   api.patch<any>(`/students/${id}/avatar`, { avatarUrl }).then((r) => r.data);
+
+export const updateBandScore = (id: string, ieltsBandScore?: number, targetBandScore?: number) =>
+  api.patch(`/students/${id}/band-score`, { ieltsBandScore, targetBandScore }).then((r) => r.data);
